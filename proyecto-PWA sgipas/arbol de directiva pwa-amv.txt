@@ -1,0 +1,58 @@
+proyecto-PWA-sgipas/
+├── .vscode/
+│   └── settings.json
+├── assets/
+│   └── icons/
+│       ├── icon-192x192.png    (debes generarlo)
+│       └── icon-512x512.png    (debes generarlo)
+├── js/
+│   ├── modules/
+│   │   ├── biblioteca/
+│   │   │   ├── index.js
+│   │   │   ├── operaciones.js
+│   │   │   ├── ui.js
+│   │   │   └── utils.js
+│   │   ├── operaciones/
+│   │   │   ├── acido.js
+│   │   │   ├── consumo.js
+│   │   │   ├── diferenciales.js
+│   │   │   ├── emisiones.js
+│   │   │   ├── fundicion.js
+│   │   │   ├── index.js
+│   │   │   ├── motores.js
+│   │   │   ├── novedades.js
+│   │   │   ├── ph.js
+│   │   │   ├── tendencias.js
+│   │   │   └── utils.js
+│   │   ├── ordenes/
+│   │   │   ├── avances.js
+│   │   │   ├── cierres.js
+│   │   │   ├── crear.js
+│   │   │   ├── detalle.js
+│   │   │   ├── index.js
+│   │   │   ├── listado.js
+│   │   │   ├── tablero.js
+│   │   │   └── utils.js
+│   │   ├── ssl/
+│   │   │   ├── emitir.js
+│   │   │   ├── historial.js
+│   │   │   ├── index.js
+│   │   │   └── utils.js
+│   │   ├── usuarios/
+│   │   │   ├── acciones.js
+│   │   │   ├── formulario.js   (corregido)
+│   │   │   ├── index.js
+│   │   │   ├── lista.js
+│   │   │   └── utils.js
+│   │   ├── presencia.js
+│   │   └── seguridad.js
+│   ├── app.js
+│   ├── auth.js
+│   ├── main.js                 (nuevo)
+│   ├── notificaciones.js
+│   └── supabase-client.js
+├── index.html                  (nuevo)
+├── logo.jpg
+├── manifest.json               (ya existente)
+├── sw.js                       (nuevo)
+└── arrancar_pwa.bat

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SGI Planta de Ácido - SGIPAS</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Sentry (opcional) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@sentry/browser@7/build/bundle.min.js"></script>
+    <script>Sentry.init({ dsn: 'TU_DSN' });</script> -->
+
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body class="bg-slate-900 text-slate-200 h-screen flex overflow-hidden font-sans">
+
+    <!-- Botón hamburguesa (solo en móviles) -->
+    <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 rounded-md bg-slate-700 text-white md:hidden">
+        ☰
+    </button>
+
+    <!-- BARRA LATERAL -->
+    <aside id="sidebar" class="w-64 bg-[#1e293b] border-r border-slate-700 flex-col z-40 shadow-2xl fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0">
+        <div class="p-6 border-b border-slate-700">
+            <h2 class="text-xl font-bold text-white">Menú Principal</h2>
+        </div>
+        
+        <!-- ocp Bloque de usuario activo -->
+        <div class="p-4 border-b border-slate-700 bg-slate-800">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg" id="avatar-inicial">U</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white truncate" id="usuario-nombre">Usuario</p>
+                    <p class="text-xs text-slate-400 capitalize" id="usuario-rol">sin rol</p>
+                </div>
+            </div>
+            <button id="btn-cambiar-password" class="mt-2 w-full text-left text-xs text-blue-400 hover:text-blue-300 transition">🔑 Cambiar contraseña</button>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-3 overflow-y-auto" id="nav-sidebar" style="overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin;">
+            <button id="btn-nav-operaciones" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">📊</span> Control Operacional
+            </button>
+            <button id="btn-nav-ssl" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">⚠️</span> Seguridad (SSL)
+            </button>
+            <button id="btn-nav-biblioteca" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">📚</span> Biblioteca Documental
+            </button>
+            <button id="btn-nav-mtto" class="w-full flex items-center justify-start p-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-sm">
+                <span class="mr-3">🔧</span> Mantenimiento / O.T.
+            </button>
+            <button id="btn-nav-usuarios" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">👥</span> Gestión de Personal
+            </button>
+            <!-- Notificaciones y presencia se agregan dinámicamente -->
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-[#0f172a] relative overflow-hidden">
+        <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8">
+            <!-- Contenido dinámico -->
+        </div>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+
+    <!-- Registro del Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('SW registrado:', reg.scope))
+          .catch(err => console.log('SW falló:', err));
+      }
+    </script>
+</body>
+</html>
