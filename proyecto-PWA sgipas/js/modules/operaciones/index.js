@@ -1,4 +1,4 @@
-// ocp Módulo Control Operacional – orquestador con todas las pestañas
+// ocp Módulo Control Operacional – orquestador con todas las pestañas (incluye Inventario)
 import { renderizarTendencias } from './tendencias.js';
 import { renderizarNovedades } from './novedades.js';
 import { renderizarAcido } from './acido.js';
@@ -8,6 +8,7 @@ import { renderizarEmisiones } from './emisiones.js';
 import { renderizarMotores } from './motores.js';
 import { renderizarDiferenciales } from './diferenciales.js';
 import { renderizarFundicion } from './fundicion.js';
+import { renderizarInventario } from './inventario.js';   // ← nueva importación
 import { obtenerRolUsuario } from './utils.js';
 
 let currentUserRole = null;
@@ -21,7 +22,7 @@ export async function cargarModuloOperaciones() {
     contenedor.innerHTML = `
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-100">Control Operacional</h1>
-            <p class="text-slate-400 mt-1">Monitoreo de parámetros críticos, reportes y tendencias.</p>
+            <p class="text-slate-400 mt-1">Monitoreo de parámetros críticos, reportes, inventario y tendencias.</p>
         </div>
 
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
@@ -35,6 +36,7 @@ export async function cargarModuloOperaciones() {
                 <button data-tab="motores" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🌡️ Motores</button>
                 <button data-tab="diferenciales" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📏 Diferenciales P.</button>
                 <button data-tab="fundicion" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🔥 Fundición</button>
+                <button data-tab="inventario" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📦 Inventario</button>
             </nav>
         </div>
 
@@ -67,6 +69,7 @@ export async function cargarModuloOperaciones() {
             case 'motores':        await renderizarMotores(tabContent, currentUserRole); break;
             case 'diferenciales':  await renderizarDiferenciales(tabContent, currentUserRole); break;
             case 'fundicion':      await renderizarFundicion(tabContent, currentUserRole); break;
+            case 'inventario':     await renderizarInventario(tabContent, currentUserRole); break;
         }
     }
 

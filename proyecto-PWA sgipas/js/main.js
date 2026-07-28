@@ -1,4 +1,4 @@
-// ocp Motor principal del sistema – autenticación, roles, presencia, menú móvil
+// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral expansivo
 import { supabase } from './supabase-client.js';
 import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
@@ -32,6 +32,7 @@ async function construirSidebar(rol) {
         biblioteca:    document.getElementById('btn-nav-biblioteca'),
         mantenimiento: document.getElementById('btn-nav-mtto'),
         operaciones:   document.getElementById('btn-nav-operaciones'),
+        bitacora:      document.getElementById('btn-nav-bitacora'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -39,6 +40,7 @@ async function construirSidebar(rol) {
         biblioteca:    true,
         mantenimiento: ['admin', 'supervisor', 'ejecutor'].includes(rol),
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
+        bitacora:      ['admin', 'supervisor'].includes(rol),
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -90,8 +92,8 @@ function abrirCambioPassword() {
 // ocp Inicio de la aplicación
 document.addEventListener('DOMContentLoaded', async () => {
     const sidebarEl = document.getElementById('sidebar');
-    const navSidebar = document.getElementById('nav-sidebar');
     const menuToggle = document.getElementById('menu-toggle');
+    const footerEl = document.getElementById('sidebar-footer');
 
     // 1. Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
@@ -111,41 +113,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rol = user.user_metadata?.rol || 'operador';
     const userName = user.user_metadata?.nombre_completo || user.email;
 
-    // 3. Mostrar sidebar y aplicar restricciones
+    // 3. Inicializar visibilidad del sidebar (abierto en escritorio, cerrado en móvil)
     if (sidebarEl) {
-        sidebarEl.classList.remove('hidden');
-        // En móviles empieza oculto
-        if (window.innerWidth < 768) {
-            sidebarEl.classList.add('-translate-x-full');
-            sidebarEl.classList.remove('translate-x-0');
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            sidebarEl.classList.add('sidebar-closed');
         } else {
-            sidebarEl.classList.remove('-translate-x-full');
-            sidebarEl.classList.add('translate-x-0');
+            sidebarEl.classList.remove('sidebar-closed');
         }
     }
     await construirSidebar(rol);
     mostrarInfoUsuario();
 
-    // 4. Agregar notificaciones, cerrar sesión y presencia
-    if (navSidebar) {
+    // 4. Agregar notificaciones, cerrar sesión y presencia en el footer del sidebar
+    if (footerEl) {
         const badgeHTML = `
-            <div class="relative mt-2">
-                <button id="btn-notificaciones" class="w-full flex items-center justify-between p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
-                    <span class="flex items-center"><span class="mr-3">🔔</span> Notificaciones</span>
-                    <span id="badge-notificaciones" class="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 hidden">0</span>
-                </button>
-            </div>`;
+            <button id="btn-notificaciones" class="w-full flex items-center justify-between p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="flex items-center"><span class="mr-3">🔔</span> Notificaciones</span>
+                <span id="badge-notificaciones" class="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 hidden">0</span>
+            </button>`;
+
         const logoutBtn = document.createElement('button');
-        logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600 mt-4';
+        logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600';
         logoutBtn.innerHTML = '<span class="mr-3">🚪</span> Cerrar Sesión';
         logoutBtn.addEventListener('click', cerrarSesion);
 
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = badgeHTML;
-        navSidebar.appendChild(tempDiv.firstElementChild);
-        navSidebar.appendChild(logoutBtn);
+        footerEl.innerHTML = badgeHTML;
+        footerEl.appendChild(logoutBtn);
 
-        // Presencia solo admin
         if (rol === 'admin') {
             const presenciaHTML = `
                 <div class="mt-2 px-4 py-2 text-xs text-slate-400 flex items-center">
@@ -154,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>`;
             const presenciaDiv = document.createElement('div');
             presenciaDiv.innerHTML = presenciaHTML;
-            navSidebar.appendChild(presenciaDiv.firstElementChild);
+            footerEl.appendChild(presenciaDiv.firstElementChild);
         }
 
         document.getElementById('btn-notificaciones')?.addEventListener('click', () => {
@@ -170,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnOperaciones = document.getElementById('btn-nav-operaciones');
     const btnBiblioteca = document.getElementById('btn-nav-biblioteca');
     const btnSSL = document.getElementById('btn-nav-ssl');
+    const btnBitacora = document.getElementById('btn-nav-bitacora');
 
     if (btnBiblioteca && !btnBiblioteca.classList.contains('hidden')) {
         btnBiblioteca.addEventListener('click', () => {
@@ -192,21 +188,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             import('./modules/ssl/index.js').then(m => m.cargarModuloSSL());
         });
     }
+    if (btnBitacora && !btnBitacora.classList.contains('hidden')) {
+        btnBitacora.addEventListener('click', () => {
+            import('./modules/bitacora.js').then(m => m.cargarBitacora());
+        });
+    }
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
 
-    // 6. Menú hamburguesa (móvil)
+    // 6. Menú hamburguesa universal
     if (menuToggle && sidebarEl) {
         menuToggle.addEventListener('click', () => {
-            sidebarEl.classList.toggle('-translate-x-full');
-            sidebarEl.classList.toggle('translate-x-0');
+            sidebarEl.classList.toggle('sidebar-closed');
+            const main = document.querySelector('main');
+            if (main) {
+                if (sidebarEl.classList.contains('sidebar-closed')) {
+                    main.style.marginLeft = '0';
+                } else {
+                    main.style.marginLeft = '';
+                }
+            }
         });
-        // Cerrar menú al seleccionar un módulo (en móvil)
+
         sidebarEl.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (window.innerWidth < 768) {
-                    sidebarEl.classList.add('-translate-x-full');
-                    sidebarEl.classList.remove('translate-x-0');
+                    sidebarEl.classList.add('sidebar-closed');
+                    const main = document.querySelector('main');
+                    if (main) main.style.marginLeft = '0';
                 }
             });
         });
@@ -215,13 +224,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Actualizar badge y cargar módulo inicial
+    // 8. Actualizar badge y cargar módulo inicial (Control Operacional con manejo de errores)
     await actualizarBadgeNotificaciones();
-    if (rol === 'admin') {
-        import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca());
-    } else {
-        import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones());
-    }
+    import('./modules/operaciones/index.js')
+        .then(m => m.cargarModuloOperaciones())
+        .catch(err => {
+            console.error('Error al cargar Control Operacional:', err);
+            // Cargar un módulo de respaldo para no dejar la pantalla en blanco
+            document.getElementById('app-content').innerHTML = `
+                <div class="flex h-full items-center justify-center">
+                    <p class="text-slate-400">Error al cargar el módulo principal. Intente recargar la página.</p>
+                </div>`;
+        });
 
     // 9. Limpiar presencia al salir
     window.addEventListener('beforeunload', () => detenerPresencia());

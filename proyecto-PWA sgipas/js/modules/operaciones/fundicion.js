@@ -14,19 +14,19 @@ export async function renderizarFundicion(contenedor, rol) {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-slate-400 text-sm">Acidez TQ-A (%)</label>
-                            <input type="number" step="0.01" id="fund-a" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="fund-a" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">Acidez TQ-B (%)</label>
-                            <input type="number" step="0.01" id="fund-b" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="fund-b" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">Acidez TQ-C (%)</label>
-                            <input type="number" step="0.01" id="fund-c" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="fund-c" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">Acidez TQ-D (%)</label>
-                            <input type="number" step="0.01" id="fund-d" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="fund-d" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Guardar Día</button>

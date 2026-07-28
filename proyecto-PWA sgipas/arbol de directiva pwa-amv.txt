@@ -3,8 +3,8 @@ proyecto-PWA-sgipas/
 │   └── settings.json
 ├── assets/
 │   └── icons/
-│       ├── icon-192x192.png    (debes generarlo)
-│       └── icon-512x512.png    (debes generarlo)
+│       ├── icon-192x192.png    
+│       └── icon-512x512.png 
 ├── js/
 │   ├── modules/
 │   │   ├── biblioteca/
@@ -40,7 +40,7 @@ proyecto-PWA-sgipas/
 │   │   │   └── utils.js
 │   │   ├── usuarios/
 │   │   │   ├── acciones.js
-│   │   │   ├── formulario.js   (corregido)
+│   │   │   ├── formulario.js  
 │   │   │   ├── index.js
 │   │   │   ├── lista.js
 │   │   │   └── utils.js
@@ -48,11 +48,11 @@ proyecto-PWA-sgipas/
 │   │   └── seguridad.js
 │   ├── app.js
 │   ├── auth.js
-│   ├── main.js                 (nuevo)
+│   ├── main.js               
 │   ├── notificaciones.js
 │   └── supabase-client.js
-├── index.html                  (nuevo)
+├── index.html                 
 ├── logo.jpg
-├── manifest.json               (ya existente)
-├── sw.js                       (nuevo)
+├── manifest.json            
+├── sw.js                      
 └── arrancar_pwa.bat
