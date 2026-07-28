@@ -1,71 +1,54 @@
-// ocp Service Worker – caché y soporte offline (v3)
-const CACHE_NAME = 'sgi-pas-v3';
+// ocp Service Worker – network-first para archivos dinámicos, actualización inmediata
+const CACHE_NAME = 'sgi-pas-v4';  // incrementa este número cada vez que hagas cambios importantes
+
+// Archivos que se cachean y se sirven desde caché solo si no hay red (offline)
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/js/main.js',
-  '/js/auth.js',
-  '/js/supabase-client.js',
-  '/js/notificaciones.js',
-  '/js/app.js',                       // por si existe
-  '/js/modules/biblioteca/index.js',
-  '/js/modules/biblioteca/operaciones.js',
-  '/js/modules/biblioteca/ui.js',
-  '/js/modules/biblioteca/utils.js',
-  '/js/modules/operaciones/acido.js',
-  '/js/modules/operaciones/consumo.js',
-  '/js/modules/operaciones/diferenciales.js',
-  '/js/modules/operaciones/emisiones.js',
-  '/js/modules/operaciones/fundicion.js',
-  '/js/modules/operaciones/index.js',
-  '/js/modules/operaciones/motores.js',
-  '/js/modules/operaciones/novedades.js',
-  '/js/modules/operaciones/ph.js',
-  '/js/modules/operaciones/tendencias.js',
-  '/js/modules/operaciones/utils.js',
-  '/js/modules/ordenes/avances.js',
-  '/js/modules/ordenes/cierres.js',
-  '/js/modules/ordenes/crear.js',
-  '/js/modules/ordenes/detalle.js',
-  '/js/modules/ordenes/index.js',
-  '/js/modules/ordenes/listado.js',
-  '/js/modules/ordenes/tablero.js',
-  '/js/modules/ordenes/utils.js',
-  '/js/modules/ssl/emitir.js',
-  '/js/modules/ssl/historial.js',
-  '/js/modules/ssl/index.js',
-  '/js/modules/ssl/utils.js',
-  '/js/modules/usuarios/acciones.js',
-  '/js/modules/usuarios/formulario.js',   // si se llama "formularios.js", renombra la línea
-  '/js/modules/usuarios/index.js',
-  '/js/modules/usuarios/lista.js',
-  '/js/modules/usuarios/utils.js',
-  '/js/modules/presencia.js',
-  '/js/modules/seguridad.js',             // por si aún existe
   '/assets/icons/icon-192x192.png',
   '/assets/icons/icon-512x512.png'
+  // Los archivos JS y CSS NO se cachean aquí, se obtienen de la red primero
 ];
 
-// ocp Instalación: precargar recursos
+// Instalación: precargar recursos estáticos que raramente cambian
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
+  // Forzar que el SW se active inmediatamente sin esperar a que las pestañas viejas se cierren
+  self.skipWaiting();
 });
 
-// ocp Activación: limpiar cachés antiguas
+// Activación: limpiar cachés antiguas y tomar control de todas las pestañas
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
     )
   );
+  self.clients.claim();
 });
 
-// ocp Estrategia cache-first: responder desde caché, si no, red
+// Estrategia: network-first para todo, excepto los recursos precargados que son offline-first
 self.addEventListener('fetch', event => {
+  // Para navegación (HTML), siempre red
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
+    return;
+  }
+
+  // Para otros recursos (JS, CSS, imágenes): network-first, luego caché
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        // Si la respuesta es válida, la clonamos y la guardamos en caché
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

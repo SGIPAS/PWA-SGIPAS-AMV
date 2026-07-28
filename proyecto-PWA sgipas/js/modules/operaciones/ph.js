@@ -10,7 +10,7 @@ export async function renderizarPH(contenedor, rol) {
                     <div>
                         <label class="block text-slate-400 text-sm">Punto de muestreo</label>
                         <select id="ph-punto" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                            <option value="caldera auxiliar">Caldera Auxiliar</option>
+                            <option value="caldera de acido">Caldera De Ácido</option>
                             <option value="calderin">Calderín</option>
                             <option value="torre enfriamiento">Torre Enfriamiento</option>
                             <option value="caldera sulfato">Caldera Sulfato</option>

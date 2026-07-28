@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SGI Planta de Ácido - SGIPAS</title>
-    
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Adaptador de fechas para Chart.js (debe cargarse después de Chart.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <link rel="manifest" href="/manifest.json">
     <style>
@@ -32,7 +37,7 @@
 
     <!-- BARRA LATERAL -->
     <aside id="sidebar" class="w-64 bg-[#1e293b] border-r border-slate-700 flex flex-col z-40 shadow-2xl fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out sidebar-closed md:sidebar-closed">
-        <!-- Logo como cabecera (mismo ancho y alto que el antiguo Menú Principal) -->
+        <!-- Logo como cabecera -->
         <div class="border-b border-slate-700 h-20 flex items-center justify-center">
             <img src="logo.png" alt="Logo AMV" class="h-full w-full object-contain" onerror="this.style.display='none'">
         </div>
@@ -49,6 +54,10 @@
         </div>
 
         <nav class="flex-1 p-4 space-y-3 overflow-y-auto" id="nav-sidebar">
+            <!-- Panel de Indicadores (nuevo módulo) -->
+            <button id="btn-nav-dashboard" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">📈</span> Panel de Indicadores
+            </button>
             <button id="btn-nav-operaciones" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
                 <span class="mr-3">📊</span> Control Operacional
             </button>

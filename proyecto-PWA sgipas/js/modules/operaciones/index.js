@@ -1,5 +1,4 @@
-// ocp Módulo Control Operacional – orquestador con todas las pestañas (incluye Inventario)
-import { renderizarTendencias } from './tendencias.js';
+// ocp Módulo Control Operacional – orquestador con todas las pestañas (sin Tendencias, ahora en Panel de Indicadores)
 import { renderizarNovedades } from './novedades.js';
 import { renderizarAcido } from './acido.js';
 import { renderizarPH } from './ph.js';
@@ -8,7 +7,7 @@ import { renderizarEmisiones } from './emisiones.js';
 import { renderizarMotores } from './motores.js';
 import { renderizarDiferenciales } from './diferenciales.js';
 import { renderizarFundicion } from './fundicion.js';
-import { renderizarInventario } from './inventario.js';   // ← nueva importación
+import { renderizarInventario } from './inventario.js';
 import { obtenerRolUsuario } from './utils.js';
 
 let currentUserRole = null;
@@ -27,8 +26,7 @@ export async function cargarModuloOperaciones() {
 
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav">
-                <button data-tab="tendencias" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📊 Tendencias</button>
-                <button data-tab="novedades" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📸 Novedades</button>
+                <button data-tab="novedades" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📸 Novedades</button>
                 <button data-tab="acido" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🧪 Ácido</button>
                 <button data-tab="ph" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">💧 pH Aguas</button>
                 <button data-tab="consumo" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">💦 Consumo Agua</button>
@@ -60,7 +58,6 @@ export async function cargarModuloOperaciones() {
         }
 
         switch (tabName) {
-            case 'tendencias':     await renderizarTendencias(tabContent, currentUserRole); break;
             case 'novedades':      await renderizarNovedades(tabContent, currentUserRole); break;
             case 'acido':          await renderizarAcido(tabContent, currentUserRole); break;
             case 'ph':             await renderizarPH(tabContent, currentUserRole); break;
@@ -74,5 +71,5 @@ export async function cargarModuloOperaciones() {
     }
 
     tabs.forEach(t => t.addEventListener('click', (e) => activarPestana(e.target.dataset.tab)));
-    await activarPestana('tendencias');
+    await activarPestana('novedades');
 }

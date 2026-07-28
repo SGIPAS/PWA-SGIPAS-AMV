@@ -29,6 +29,7 @@ async function actualizarBadgeNotificaciones() {
 // ocp Mostrar u ocultar botones del sidebar según el rol
 async function construirSidebar(rol) {
     const botones = {
+        dashboard:     document.getElementById('btn-nav-dashboard'),
         biblioteca:    document.getElementById('btn-nav-biblioteca'),
         mantenimiento: document.getElementById('btn-nav-mtto'),
         operaciones:   document.getElementById('btn-nav-operaciones'),
@@ -37,6 +38,7 @@ async function construirSidebar(rol) {
         ssl:           document.getElementById('btn-nav-ssl')
     };
     const visibilidad = {
+        dashboard:     true,  // todos ven el panel
         biblioteca:    true,
         mantenimiento: ['admin', 'supervisor', 'ejecutor'].includes(rol),
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
@@ -113,10 +115,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rol = user.user_metadata?.rol || 'operador';
     const userName = user.user_metadata?.nombre_completo || user.email;
 
-    // 3. Inicializar visibilidad del sidebar (abierto en escritorio, cerrado en móvil)
+    // 3. Mostrar sidebar y aplicar restricciones
     if (sidebarEl) {
-        const isMobile = window.innerWidth < 768;
-        if (isMobile) {
+        sidebarEl.classList.remove('hidden');
+        if (window.innerWidth < 768) {
             sidebarEl.classList.add('sidebar-closed');
         } else {
             sidebarEl.classList.remove('sidebar-closed');
@@ -159,7 +161,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación
+    // 5. Conectar botones de navegación (incluido el Panel de Indicadores)
+    const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
     const btnOperaciones = document.getElementById('btn-nav-operaciones');
@@ -167,6 +170,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
 
+    if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
+        btnDashboard.addEventListener('click', () => {
+            import('./modules/dashboard/index.js')
+                .then(m => m.cargarDashboard())
+                .catch(err => console.error('Error al cargar Panel de Indicadores:', err));
+        });
+    }
     if (btnBiblioteca && !btnBiblioteca.classList.contains('hidden')) {
         btnBiblioteca.addEventListener('click', () => {
             import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca());
@@ -224,17 +234,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Actualizar badge y cargar módulo inicial (Control Operacional con manejo de errores)
+    // 8. Actualizar badge y cargar módulo inicial (Panel de Indicadores)
     await actualizarBadgeNotificaciones();
-    import('./modules/operaciones/index.js')
-        .then(m => m.cargarModuloOperaciones())
+    import('./modules/dashboard/index.js')
+        .then(m => m.cargarDashboard())
         .catch(err => {
-            console.error('Error al cargar Control Operacional:', err);
-            // Cargar un módulo de respaldo para no dejar la pantalla en blanco
-            document.getElementById('app-content').innerHTML = `
-                <div class="flex h-full items-center justify-center">
-                    <p class="text-slate-400">Error al cargar el módulo principal. Intente recargar la página.</p>
-                </div>`;
+            console.error('Error al cargar Panel de Indicadores:', err);
+            document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel principal.</p>`;
         });
 
     // 9. Limpiar presencia al salir
