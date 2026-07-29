@@ -1,4 +1,4 @@
-// ocp Informe de Emisiones SO₂ – plantilla mensual con respaldo fotográfico
+// ocp Informe de Emisiones SO₂ – plantilla mensual con cintillo y respaldo fotográfico
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarInformeEmisiones(contenedor) {
@@ -27,10 +27,20 @@ export async function renderizarInformeEmisiones(contenedor) {
         const inicioSel = new Date(anioSel, mesSel-1, 1).toISOString().split('T')[0];
         const finSel = new Date(anioSel, mesSel, 0).toISOString().split('T')[0];
 
-        const { data: emisiones } = await supabase.from('emisiones_so2').select('*').gte('fecha_registro', inicioSel).lte('fecha_registro', finSel).order('fecha_registro', { ascending: true });
+        const { data: emisiones } = await supabase
+            .from('emisiones_so2')
+            .select('*')
+            .gte('fecha_registro', inicioSel)
+            .lte('fecha_registro', finSel)
+            .order('fecha_registro', { ascending: true });
 
-        // Obtener fotos de emisiones del mes
-        const { data: fotos } = await supabase.from('emisiones_so2').select('foto_url, fecha_registro').not('foto_url', 'is', null).gte('fecha_registro', inicioSel).lte('fecha_registro', finSel).order('fecha_registro', { ascending: true });
+        const { data: fotos } = await supabase
+            .from('emisiones_so2')
+            .select('foto_url, fecha_registro')
+            .not('foto_url', 'is', null)
+            .gte('fecha_registro', inicioSel)
+            .lte('fecha_registro', finSel)
+            .order('fecha_registro', { ascending: true });
 
         const nombreMes = new Date(anioSel, mesSel-1).toLocaleDateString('es-VE', { month: 'long', year: 'numeric' });
 
@@ -39,6 +49,12 @@ export async function renderizarInformeEmisiones(contenedor) {
             <style>
                 @media print { body * { visibility: hidden; } #reporte-emisiones-print, #reporte-emisiones-print * { visibility: visible; } #reporte-emisiones-print { position: absolute; left: 0; top: 0; width: 100%; } }
             </style>
+            
+            <!-- Cintillo corporativo -->
+            <div style="width: 100%; margin-bottom: 1rem; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.5rem; background: white;">
+                <img src="cintillo_superior.png" style="width: 100%; height: auto; display: block;">
+            </div>
+
             <p class="text-right">FECHA: ${ahora.toLocaleDateString('es-VE')}</p>
             <h2 class="text-xl font-bold text-center mb-4">INFORME DE EMISIONES DE ${nombreMes.toUpperCase()}</h2>
             <p class="text-sm mb-4">Se realizaron pruebas de emisiones atmosféricas según el programa de seguimiento con frecuencia semanal los días jueves de cada semana, reportando los siguientes valores:</p>
@@ -49,7 +65,7 @@ export async function renderizarInformeEmisiones(contenedor) {
                     <tr>
                         <td class="border p-1">${new Date(e.fecha_registro + 'T00:00:00').toLocaleDateString('es-VE')}</td>
                         <td class="border p-1">${e.temperatura ?? '--'}</td>
-                        <td class="border p-1">${e.flujo_sistema ?? e.porcentaje_o2 ?? '--'}</td>
+                        <td class="border p-1">${e.porcentaje_o2 ?? '--'}</td>
                         <td class="border p-1">${e.ppm_so2 ?? '--'}</td>
                         <td class="border p-1">${e.foto_url ? 'Con evidencia fotográfica' : ''}</td>
                     </tr>
