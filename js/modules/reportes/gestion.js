@@ -1,4 +1,4 @@
-// ocp Informe de Gestión Operacional – resumen con fotos de novedades
+// ocp Informe de Gestión Operacional – resumen con fotos de novedades y cintillo corporativo
 import { supabase } from '../../supabase-client.js';
 import { colorSemaforo, colorClase, generarSparkline, generarVelocimetro } from './utils.js';
 
@@ -50,6 +50,12 @@ export async function renderizarInformeGestion(contenedor, rol) {
             <style>
                 @media print { body * { visibility: hidden; } #reporte-gestion-print, #reporte-gestion-print * { visibility: visible; } #reporte-gestion-print { position: absolute; left: 0; top: 0; width: 100%; } }
             </style>
+            
+            <!-- Cintillo corporativo -->
+            <div style="width: 100%; margin-bottom: 1rem; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.5rem; background: white;">
+                <img src="cintillo_superior.png" style="width: 100%; height: auto; display: block;">
+            </div>
+
             <h2 class="text-xl font-bold text-center mb-4">INFORME DE GESTIÓN OPERACIONAL</h2>
             <p class="text-sm text-center mb-4">Período: ${desde} – ${hasta}</p>
             
@@ -69,7 +75,7 @@ export async function renderizarInformeGestion(contenedor, rol) {
                     <p class="text-xs">Cerradas: ${cerradas}</p>
                 </div>
                 <div class="text-center border p-2 rounded">
-                    <p class="text-sm font-bold">Velocímetro (OTs cerradas)</p>
+                    <p class="text-sm font-bold">OTs Cerradas</p>
                     ${generarVelocimetro(cerradas, totalOT || 1, '#22c55e')}
                 </div>
             </div>
