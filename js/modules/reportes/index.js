@@ -13,7 +13,7 @@ export async function cargarReportes() {
     contenedor.innerHTML = `
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-100">Reportes</h1>
-            <p class="text-slate-400 mt-1">Informes de gestión, emisiones y respaldo fotográfico.</p>
+            <p class="text-slate-400 mt-1">Informes de gestión y emisiones.</p>
         </div>
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav">
