@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Adaptador de fechas para Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <!-- SheetJS para exportar a Excel -->
+    <!-- SheetJS (exportar Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <link rel="manifest" href="/manifest.json">
@@ -29,6 +29,31 @@
             overflow: hidden !important;
             border-right-width: 0 !important;
         }
+
+        /* Estilos de impresión globales */
+        @media print {
+            /* Oculta todo el contenido de la aplicación */
+            body > *:not(#app-content) {
+                display: none !important;
+            }
+            #app-content {
+                overflow: visible !important;
+                padding: 0 !important;
+            }
+            #app-content > *:not(#reporte-gestion-print):not(#reporte-emisiones-print) {
+                display: none !important;
+            }
+            /* Asegura que los informes ocupen toda la página */
+            #reporte-gestion-print,
+            #reporte-emisiones-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 1cm;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 h-screen flex overflow-hidden font-sans">
@@ -39,6 +64,7 @@
 
     <!-- BARRA LATERAL -->
     <aside id="sidebar" class="w-64 bg-[#1e293b] border-r border-slate-700 flex flex-col z-40 shadow-2xl fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out sidebar-closed md:sidebar-closed">
+        <!-- Logo como cabecera -->
         <div class="border-b border-slate-700 h-20 flex items-center justify-center">
             <img src="logo.png" alt="Logo AMV" class="h-full w-full object-contain" onerror="this.style.display='none'">
         </div>
