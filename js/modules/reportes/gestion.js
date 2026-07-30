@@ -1,4 +1,4 @@
-// ocp Informe de Gestión Operacional – ahora personalizable con múltiples parámetros
+// ocp Informe de Gestión Operacional – personalizable, con impresión mejorada y exportación detallada a Excel
 import { supabase } from '../../supabase-client.js';
 import { colorSemaforo, colorClase, generarSparkline, exportarAExcel } from './utils.js';
 
@@ -7,7 +7,7 @@ let parametrosAgregados = [];
 export async function renderizarInformeGestion(contenedor, rol) {
     const { data: puntosPH } = await supabase.from('ph_aguas').select('punto_muestreo').order('punto_muestreo');
     const { data: equiposMotor } = await supabase.from('puntos_medicion_motores').select('tag_equipo').order('tag_equipo');
-    const phPuntos = [...new Set((puntosPH || []).map(p => p.punto_muestreo))];
+    const phPuntos = [...new Set((puntosPH || []).map(p => p.punto_muestreo))].filter(p => p !== 'caldera auxiliar');
     const motorTags = [...new Set((equiposMotor || []).map(e => e.tag_equipo))];
 
     contenedor.innerHTML = `
@@ -111,66 +111,110 @@ async function generarInforme() {
 
         switch (tipo) {
             case 'acido': {
-                const { data } = await supabase.from('analisis_acido').select('concentracion, turbidez_ntu').gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                const { data } = await supabase.from('analisis_acido').select('*').gte('fecha_registro', desde).lte('fecha_registro', hasta);
                 if (data?.length) {
                     const prom = (data.reduce((s, a) => s + a.concentracion, 0) / data.length).toFixed(2);
                     const ntu = (data.reduce((s, a) => s + (a.turbidez_ntu || 0), 0) / data.length).toFixed(2);
-                    resultados.push({ parametro: 'Ácido Sulfúrico', desde, hasta, valores: `Conc: ${prom}%, NTU: ${ntu}` });
+                    resultados.push({
+                        parametro: 'Ácido Sulfúrico',
+                        desde,
+                        hasta,
+                        resumen: `Conc: ${prom}%, NTU: ${ntu}`,
+                        data // guardamos todos los registros para Excel
+                    });
                 }
                 break;
             }
             case 'ph': {
                 const punto = document.querySelector(`.param-punto[data-id="${param.id}"]`)?.value;
-                const { data } = await supabase.from('ph_aguas').select('valor_ph').eq('punto_muestreo', punto).gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                const { data } = await supabase.from('ph_aguas').select('*').eq('punto_muestreo', punto).gte('fecha_registro', desde).lte('fecha_registro', hasta);
                 if (data?.length) {
                     const prom = (data.reduce((s, p) => s + p.valor_ph, 0) / data.length).toFixed(2);
-                    resultados.push({ parametro: `pH ${punto}`, desde, hasta, valores: `Promedio: ${prom}` });
+                    resultados.push({
+                        parametro: `pH ${punto}`,
+                        desde,
+                        hasta,
+                        resumen: `Promedio: ${prom}`,
+                        data
+                    });
                 }
                 break;
             }
             case 'consumo': {
                 const tipoConsumo = document.querySelector(`.param-consumo-tipo[data-id="${param.id}"]`)?.value;
-                const { data } = await supabase.from('consumo_agua').select('valor_m3').eq('tipo', tipoConsumo).gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                const { data } = await supabase.from('consumo_agua').select('*').eq('tipo', tipoConsumo).gte('fecha_registro', desde).lte('fecha_registro', hasta);
                 if (data?.length) {
                     const prom = (data.reduce((s, c) => s + c.valor_m3, 0) / data.length).toFixed(2);
-                    resultados.push({ parametro: `Consumo ${tipoConsumo}`, desde, hasta, valores: `Promedio: ${prom} m³` });
+                    resultados.push({
+                        parametro: `Consumo ${tipoConsumo}`,
+                        desde,
+                        hasta,
+                        resumen: `Promedio: ${prom} m³`,
+                        data
+                    });
                 }
                 break;
             }
             case 'emisiones': {
-                const { data } = await supabase.from('emisiones_so2').select('ppm_so2').gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                const { data } = await supabase.from('emisiones_so2').select('*').gte('fecha_registro', desde).lte('fecha_registro', hasta);
                 if (data?.length) {
                     const prom = (data.reduce((s, e) => s + e.ppm_so2, 0) / data.length).toFixed(1);
-                    resultados.push({ parametro: 'Emisiones SO₂', desde, hasta, valores: `ppm: ${prom}` });
+                    resultados.push({
+                        parametro: 'Emisiones SO₂',
+                        desde,
+                        hasta,
+                        resumen: `ppm: ${prom}`,
+                        data
+                    });
                 }
                 break;
             }
             case 'motores': {
                 const motor = document.querySelector(`.param-motor[data-id="${param.id}"]`)?.value;
-                const { data } = await supabase.from('mediciones_motores')
-                    .select('temperatura, punto_medicion!inner(tag_equipo)')
+                const { data } = await supabase
+                    .from('mediciones_motores')
+                    .select('*, punto_medicion!inner(tag_equipo)')
                     .eq('punto_medicion.tag_equipo', motor)
-                    .gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                    .gte('fecha_registro', desde)
+                    .lte('fecha_registro', hasta);
                 if (data?.length) {
                     const prom = (data.reduce((s, m) => s + m.temperatura, 0) / data.length).toFixed(1);
-                    resultados.push({ parametro: `Motor ${motor}`, desde, hasta, valores: `Temp: ${prom}°C` });
+                    resultados.push({
+                        parametro: `Motor ${motor}`,
+                        desde,
+                        hasta,
+                        resumen: `Temp: ${prom}°C`,
+                        data
+                    });
                 }
                 break;
             }
             case 'fundicion': {
-                const { data } = await supabase.from('fundicion_diaria').select('big_bags').gte('fecha_registro', desde).lte('fecha_registro', hasta);
+                const { data } = await supabase.from('fundicion_diaria').select('*').gte('fecha_registro', desde).lte('fecha_registro', hasta);
                 if (data?.length) {
                     const total = data.reduce((s, f) => s + (f.big_bags || 0), 0);
-                    resultados.push({ parametro: 'Fundición', desde, hasta, valores: `Total: ${total} BB` });
+                    resultados.push({
+                        parametro: 'Fundición',
+                        desde,
+                        hasta,
+                        resumen: `Total: ${total} BB`,
+                        data
+                    });
                 }
                 break;
             }
             case 'ots': {
-                const { data } = await supabase.from('ordenes_trabajo').select('estado').gte('fecha_solicitud', desde).lte('fecha_solicitud', hasta);
+                const { data } = await supabase.from('ordenes_trabajo').select('*').gte('fecha_solicitud', desde).lte('fecha_solicitud', hasta);
                 if (data?.length) {
                     const total = data.length;
                     const cerradas = data.filter(o => o.estado === 'cerrada').length;
-                    resultados.push({ parametro: 'Órdenes de Trabajo', desde, hasta, valores: `Total: ${total}, Cerradas: ${cerradas}` });
+                    resultados.push({
+                        parametro: 'Órdenes de Trabajo',
+                        desde,
+                        hasta,
+                        resumen: `Total: ${total}, Cerradas: ${cerradas}`,
+                        data
+                    });
                 }
                 break;
             }
@@ -179,7 +223,7 @@ async function generarInforme() {
 
     const vista = document.getElementById('vista-informe-gestion');
     if (resultados.length === 0) {
-        vista.innerHTML = '<p class="text-slate-400">No se encontraron datos para los parámetros seleccionados.</p>';
+        vista.innerHTML = '<p class="text-slate-400">No se encontraron datos.</p>';
         document.getElementById('btn-exportar-excel').classList.add('hidden');
         return;
     }
@@ -188,25 +232,35 @@ async function generarInforme() {
         <h2 class="text-xl font-bold mb-4 text-center">INFORME DE GESTIÓN OPERACIONAL</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
     resultados.forEach(r => {
-        html += `<div class="border rounded p-3 bg-gray-50"><h3 class="font-bold text-sm">${r.parametro}</h3><p class="text-xs text-gray-500">${r.desde} – ${r.hasta}</p><p class="text-sm mt-1">${r.valores}</p></div>`;
+        html += `<div class="border rounded p-3 bg-gray-50">
+            <h3 class="font-bold text-sm">${r.parametro}</h3>
+            <p class="text-xs text-gray-500">${r.desde} – ${r.hasta}</p>
+            <p class="text-sm mt-1">${r.resumen}</p>
+        </div>`;
     });
     html += `</div>
         <div class="text-center mt-4 no-print">
             <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2">🖨️ Imprimir</button>
-        </div></div>`;
+        </div>
+    </div>`;
 
     vista.innerHTML = html;
     document.getElementById('btn-exportar-excel').classList.remove('hidden');
-    window.resultadosInforme = resultados;
+    window.resultadosInforme = resultados; // guardamos con datos completos
 }
 
 function exportarInformeExcel() {
     if (!window.resultadosInforme || !window.resultadosInforme.length) return;
-    const datos = window.resultadosInforme.map(r => ({
-        Parámetro: r.parametro,
-        Desde: r.desde,
-        Hasta: r.hasta,
-        Valores: r.valores
-    }));
-    exportarAExcel(datos, 'Gestión Operacional', `gestion_operacional_${new Date().toISOString().slice(0,10)}.xlsx`);
+    const wb = XLSX.utils.book_new();
+    for (const r of window.resultadosInforme) {
+        if (r.data && r.data.length > 0) {
+            const ws = XLSX.utils.json_to_sheet(r.data);
+            XLSX.utils.book_append_sheet(wb, ws, r.parametro.substring(0, 31)); // nombre de hoja limitado
+        } else {
+            // Crear hoja con el resumen
+            const ws = XLSX.utils.json_to_sheet([{ Resumen: r.resumen }]);
+            XLSX.utils.book_append_sheet(wb, ws, r.parametro.substring(0, 31));
+        }
+    }
+    XLSX.writeFile(wb, `gestion_operacional_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
