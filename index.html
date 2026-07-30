@@ -30,28 +30,24 @@
             border-right-width: 0 !important;
         }
 
-        /* Estilos de impresión globales */
+        /* ocp Impresión: oculta todo excepto el contenido principal */
         @media print {
-            /* Oculta todo el contenido de la aplicación */
-            body > *:not(#app-content) {
-                display: none !important;
+            body * {
+                visibility: hidden;
+            }
+            #app-content, #app-content * {
+                visibility: visible;
             }
             #app-content {
-                overflow: visible !important;
-                padding: 0 !important;
-            }
-            #app-content > *:not(#reporte-gestion-print):not(#reporte-emisiones-print) {
-                display: none !important;
-            }
-            /* Asegura que los informes ocupen toda la página */
-            #reporte-gestion-print,
-            #reporte-emisiones-print {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
-                margin: 0;
                 padding: 1cm;
+                overflow: visible;
+            }
+            .no-print {
+                display: none;
             }
         }
     </style>
@@ -101,6 +97,10 @@
             </button>
             <button id="btn-nav-reportes" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
                 <span class="mr-3">📄</span> Reportes
+            </button>
+            <!-- NUEVO: Paradas de Planta -->
+            <button id="btn-nav-paradas" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
+                <span class="mr-3">🛑</span> Paradas de Planta
             </button>
             <button id="btn-nav-usuarios" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
                 <span class="mr-3">👥</span> Gestión de Personal
