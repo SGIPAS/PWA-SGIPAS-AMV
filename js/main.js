@@ -34,17 +34,17 @@ async function construirSidebar(rol) {
         mantenimiento: document.getElementById('btn-nav-mtto'),
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
-        reportes:      document.getElementById('btn-nav-reportes'),   // NUEVO
+        reportes:      document.getElementById('btn-nav-reportes'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
     const visibilidad = {
-        dashboard:     true,  // todos ven el panel
+        dashboard:     true,
         biblioteca:    true,
         mantenimiento: ['admin', 'supervisor', 'ejecutor'].includes(rol),
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
-        reportes:      ['admin', 'supervisor'].includes(rol),         // NUEVO
+        reportes:      ['admin', 'supervisor'].includes(rol),
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluidos Panel de Indicadores y Reportes)
+    // 5. Conectar botones de navegación (incluido Panel de Indicadores y Reportes)
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnBiblioteca = document.getElementById('btn-nav-biblioteca');
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
-    const btnReportes = document.getElementById('btn-nav-reportes');   // NUEVO
+    const btnReportes = document.getElementById('btn-nav-reportes');
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
         btnDashboard.addEventListener('click', () => {
@@ -206,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             import('./modules/bitacora.js').then(m => m.cargarBitacora());
         });
     }
-    // NUEVO: Reportes
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
         btnReportes.addEventListener('click', () => {
             import('./modules/reportes/index.js')
