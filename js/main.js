@@ -35,6 +35,7 @@ async function construirSidebar(rol) {
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
+        paradas:       document.getElementById('btn-nav-paradas'),   // NUEVO
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -45,6 +46,7 @@ async function construirSidebar(rol) {
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
+        paradas:       ['admin', 'supervisor'].includes(rol),        // NUEVO
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -163,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluido Panel de Indicadores y Reportes)
+    // 5. Conectar botones de navegación (incluido Paradas de Planta)
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -172,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
+    const btnParadas = document.getElementById('btn-nav-paradas');   // NUEVO
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
         btnDashboard.addEventListener('click', () => {
@@ -211,6 +214,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             import('./modules/reportes/index.js')
                 .then(m => m.cargarReportes())
                 .catch(err => console.error('Error al cargar Reportes:', err));
+        });
+    }
+    // NUEVO: Paradas de Planta
+    if (btnParadas && !btnParadas.classList.contains('hidden')) {
+        btnParadas.addEventListener('click', () => {
+            import('./modules/paradas.js')
+                .then(m => m.cargarParadas())
+                .catch(err => console.error('Error al cargar Paradas de Planta:', err));
         });
     }
 
