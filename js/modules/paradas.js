@@ -45,7 +45,7 @@ export async function cargarParadas() {
                             <option value="Mantenimiento Programado">Mantenimiento Programado</option>
                             <option value="Falla de Equipo">Falla de Equipo</option>
                             <option value="Falta de Materia Prima">Falta de Materia Prima</option>
-                            <option value="Emergencia">Emergencia</option>
+                            <option value="falla electrica">falla electrica (pestañeo)</option>
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
