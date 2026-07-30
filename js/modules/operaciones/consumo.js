@@ -1,5 +1,6 @@
-// ocp Registro de consumo de agua (5 tipos)
+// ocp Registro de consumo de agua con exportación a Excel
 import { supabase } from '../../supabase-client.js';
+import { exportarAExcel } from '../reportes/utils.js';  // función compartida
 
 export async function renderizarConsumo(contenedor, rol) {
     contenedor.innerHTML = `
@@ -12,8 +13,8 @@ export async function renderizarConsumo(contenedor, rol) {
                         <select id="consumo-tipo" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                             <option value="general">General</option>
                             <option value="planta acido">Planta de Ácido</option>
-                            <option value="caldera sulfato">Caldera de Sulfato</option>
                             <option value="caldera acido">Caldera de Ácido</option>
+                            <option value="caldera de sulfato">Caldera de Sulfato</option>
                             <option value="planta sulfato">Planta de Sulfato</option>
                         </select>
                     </div>
@@ -29,6 +30,7 @@ export async function renderizarConsumo(contenedor, rol) {
                 <div id="lista-consumo" class="space-y-2 max-h-96 overflow-y-auto">
                     <p class="text-slate-400 animate-pulse">Cargando...</p>
                 </div>
+                <button id="btn-exportar-consumo" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded hidden">📥 Exportar Excel</button>
             </div>
         </div>
     `;
@@ -57,15 +59,10 @@ export async function renderizarConsumo(contenedor, rol) {
 
 async function cargarListaConsumo() {
     const container = document.getElementById('lista-consumo');
-    const { data, error } = await supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(10);
-    if (error) {
-        container.innerHTML = '<p class="text-red-500">Error.</p>';
-        return;
-    }
-    if (!data.length) {
-        container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
-        return;
-    }
+    const { data, error } = await supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(200);
+    if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
+    if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
+
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
             <span class="text-slate-400">${r.fecha_registro}</span>
@@ -73,4 +70,11 @@ async function cargarListaConsumo() {
             <span class="ml-2 text-blue-400">${r.valor_m3} m³</span>
         </div>
     `).join('');
+
+    // Mostrar botón exportar
+    const btn = document.getElementById('btn-exportar-consumo');
+    if (btn) {
+        btn.classList.remove('hidden');
+        btn.onclick = () => exportarAExcel(data, 'Consumo Agua', `consumo_agua_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
 }
