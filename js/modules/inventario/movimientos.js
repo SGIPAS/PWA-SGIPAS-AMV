@@ -1,7 +1,7 @@
 // ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido
 import { supabase } from '../../supabase-client.js';
 
-export async function renderizarMovimientos(contenedor, rol) {
+export async function renderizarMovimientos(contenedor) {
     contenedor.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -101,7 +101,6 @@ export async function renderizarMovimientos(contenedor, rol) {
         }
         camposDinamicos.innerHTML = html;
 
-        // Evento del certificado
         document.getElementById('certificado')?.addEventListener('change', function() {
             document.getElementById('campos-certificado')?.classList.toggle('hidden', !this.checked);
         });
@@ -122,7 +121,6 @@ export async function renderizarMovimientos(contenedor, rol) {
     fileInput?.addEventListener('change', () => { if (fileInput.files[0]) mostrarPreview(fileInput.files[0]); });
     camInput?.addEventListener('change', () => { if (camInput.files[0]) mostrarPreview(camInput.files[0]); });
 
-    // Envío del formulario
     document.getElementById('form-inventario').addEventListener('submit', async (e) => {
         e.preventDefault();
         const tipo = tipoSelect.value;
@@ -171,8 +169,6 @@ export async function renderizarMovimientos(contenedor, rol) {
         cargarListaMovimientos();
     });
 
-    await cargarListaMovimientos();
-
     async function cargarListaMovimientos() {
         const container = document.getElementById('lista-movimientos');
         const { data, error } = await supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(10);
@@ -190,4 +186,6 @@ export async function renderizarMovimientos(contenedor, rol) {
             </div>
         `).join('');
     }
+
+    await cargarListaMovimientos();
 }

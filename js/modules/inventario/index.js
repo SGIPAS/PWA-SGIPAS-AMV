@@ -1,17 +1,22 @@
 // ocp Módulo de Inventario y Producción – orquestador con subpestañas
 import { renderizarMovimientos } from './movimientos.js';
+import { renderizarFundicion } from './fundicion.js';
 import { renderizarProduccion } from './produccion.js';
 
-export async function renderizarInventario(contenedor, rol) {
+export async function cargarInventario() {
+    const contenedor = document.getElementById('app-content');
+    if (!contenedor) return;
+
     contenedor.innerHTML = `
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-100">Inventario y Producción</h1>
-            <p class="text-slate-400 mt-1">Recepción, despachos y control diario de producción.</p>
+            <p class="text-slate-400 mt-1">Recepción, despachos, fundición y control de producción.</p>
         </div>
 
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav">
                 <button data-tab="movimientos" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📦 Movimientos</button>
+                <button data-tab="fundicion" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🔥 Fundición</button>
                 <button data-tab="produccion" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🏭 Producción y Stock</button>
             </nav>
         </div>
@@ -32,9 +37,15 @@ export async function renderizarInventario(contenedor, rol) {
             activa.classList.remove('border-transparent', 'text-slate-400');
             activa.classList.add('border-blue-500', 'text-blue-500');
         }
-        switch (name) {
-            case 'movimientos': await renderizarMovimientos(tabContent, rol); break;
-            case 'produccion': await renderizarProduccion(tabContent); break;
+        try {
+            switch (name) {
+                case 'movimientos': await renderizarMovimientos(tabContent); break;
+                case 'fundicion':   await renderizarFundicion(tabContent);   break;
+                case 'produccion':  await renderizarProduccion(tabContent);   break;
+            }
+        } catch (err) {
+            tabContent.innerHTML = `<p class="text-red-500">Error al cargar: ${err.message}</p>`;
+            console.error(err);
         }
     }
 
