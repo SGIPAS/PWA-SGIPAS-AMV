@@ -7,7 +7,7 @@ import { renderizarEmisiones } from './emisiones.js';
 import { renderizarMotores } from './motores.js';
 import { renderizarDiferenciales } from './diferenciales.js';
 import { renderizarFundicion } from './fundicion.js';
-import { renderizarInventario } from './inventario.js';
+import { renderizarInventario } from './inventario/index.js';
 import { obtenerRolUsuario } from './utils.js';
 
 let currentUserRole = null;
