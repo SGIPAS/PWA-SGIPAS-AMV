@@ -1,4 +1,4 @@
-// ocp Submódulo de Producción Diaria y Stock Actual (con desglose por tanque y certificaciones)
+// ocp Submódulo de Producción Diaria y Stock Actual (con desglose por tanque TQ-3101..4 y certificaciones)
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarProduccion(contenedor) {
@@ -15,10 +15,10 @@ export async function renderizarProduccion(contenedor) {
                         <label class="block text-slate-400 text-sm">Tanque</label>
                         <select id="prod-tanque" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
                             <option value="">Seleccione...</option>
-                            <option value="A">TQ-A</option>
-                            <option value="B">TQ-B</option>
-                            <option value="C">TQ-C</option>
-                            <option value="D">TQ-D</option>
+                            <option value="TQ-3101">TQ-3101</option>
+                            <option value="TQ-3102">TQ-3102</option>
+                            <option value="TQ-3103">TQ-3103</option>
+                            <option value="TQ-3104">TQ-3104</option>
                         </select>
                     </div>
                     <div>
@@ -52,7 +52,6 @@ export async function renderizarProduccion(contenedor) {
 
         if (!tanque) return alert('Seleccione un tanque.');
 
-        // Insertar o actualizar producción para ese día y tanque (podría haber múltiples registros por día si se produce en varios tanques)
         const { error } = await supabase.from('produccion_diaria').insert({
             fecha,
             tanque,
@@ -80,46 +79,42 @@ async function cargarListaProduccion() {
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
     container.innerHTML = data.map(p => `
         <div class="bg-slate-800 p-2 rounded text-sm flex justify-between">
-            <span>${p.fecha} (TQ-${p.tanque || '?'})</span>
+            <span>${p.fecha} (${p.tanque || '?'})</span>
             <span class="font-bold text-green-400">${p.toneladas.toFixed(3)} ton</span>
         </div>
     `).join('');
 }
 
-// ocp Calcula y muestra el stock por tanque, incluyendo certificaciones
+// ocp Calcula y muestra el stock por tanque TQ-3101..4, incluyendo certificaciones
 async function actualizarResumenStock() {
     const container = document.getElementById('resumen-stock');
 
-    // Obtener producción agrupada por tanque
     const { data: produccion } = await supabase.from('produccion_diaria').select('tanque, toneladas');
-    const prodPorTanque = { A: 0, B: 0, C: 0, D: 0 };
+    const prodPorTanque = { 'TQ-3101': 0, 'TQ-3102': 0, 'TQ-3103': 0, 'TQ-3104': 0 };
     produccion?.forEach(p => {
         if (p.tanque && prodPorTanque.hasOwnProperty(p.tanque)) {
             prodPorTanque[p.tanque] += p.toneladas;
         }
     });
 
-    // Obtener despachos que tengan tanque_origen definido
     const { data: despachos } = await supabase
         .from('inventario_movimientos')
         .select('tanque_origen, toneladas_despachadas')
         .in('tipo_movimiento', ['despacho_sulfato', 'despacho_cisterna'])
         .not('tanque_origen', 'is', null);
 
-    const despPorTanque = { A: 0, B: 0, C: 0, D: 0 };
+    const despPorTanque = { 'TQ-3101': 0, 'TQ-3102': 0, 'TQ-3103': 0, 'TQ-3104': 0 };
     despachos?.forEach(d => {
         if (d.tanque_origen && despPorTanque.hasOwnProperty(d.tanque_origen)) {
             despPorTanque[d.tanque_origen] += (d.toneladas_despachadas || 0);
         }
     });
 
-    // Obtener últimas certificaciones por tanque (la más reciente de cada uno)
     const { data: certificaciones } = await supabase
         .from('certificaciones_acido')
         .select('*')
         .order('fecha_analisis', { ascending: false });
 
-    // Agrupar última certificación por tanque
     const certPorTanque = {};
     certificaciones?.forEach(c => {
         if (!certPorTanque[c.tanque]) {
@@ -129,7 +124,7 @@ async function actualizarResumenStock() {
 
     let html = '';
     let totalGeneral = 0;
-    const tanques = ['A', 'B', 'C', 'D'];
+    const tanques = ['TQ-3101', 'TQ-3102', 'TQ-3103', 'TQ-3104'];
 
     tanques.forEach(tq => {
         const stock = prodPorTanque[tq] - despPorTanque[tq];
@@ -138,7 +133,7 @@ async function actualizarResumenStock() {
         const vigente = cert && new Date(cert.fecha_vigencia) >= new Date();
         html += `
             <div class="border border-slate-600 rounded p-2">
-                <p class="font-bold text-white">Tanque ${tq}: ${stock.toFixed(3)} ton</p>
+                <p class="font-bold text-white">${tq}: ${stock.toFixed(3)} ton</p>
                 ${cert ? `
                     <p class="text-xs text-slate-400">
                         Cert: ${cert.concentracion}% | Fe: ${cert.ppm_fe ?? '--'} ppm | NTU: ${cert.ntu ?? '--'} 

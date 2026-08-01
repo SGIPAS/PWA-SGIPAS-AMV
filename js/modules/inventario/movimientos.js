@@ -1,4 +1,4 @@
-// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido (con selección de procedencia y tanque de origen)
+// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido (tanque de origen unificado)
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarMovimientos(contenedor) {
@@ -40,7 +40,6 @@ export async function renderizarMovimientos(contenedor) {
         </div>
     `;
 
-    // Generar campos según tipo
     const tipoSelect = document.getElementById('tipo-movimiento');
     const camposDinamicos = document.getElementById('campos-dinamicos');
 
@@ -69,23 +68,13 @@ export async function renderizarMovimientos(contenedor) {
                 <input type="number" step="0.01" id="toneladas" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
             </div>
             <div>
-                <label class="block text-slate-400 text-sm">Procedencia</label>
-                <select id="procedencia" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                <label class="block text-slate-400 text-sm">Tanque de Origen</label>
+                <select id="tanque-origen" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
                     <option value="">Seleccione...</option>
                     <option value="TQ-3101">TQ-3101</option>
                     <option value="TQ-3102">TQ-3102</option>
                     <option value="TQ-3103">TQ-3103</option>
                     <option value="TQ-3104">TQ-3104</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-slate-400 text-sm">Tanque de Origen (opcional)</label>
-                <select id="tanque-origen" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                    <option value="">No especificado</option>
-                    <option value="A">TQ-A</option>
-                    <option value="B">TQ-B</option>
-                    <option value="C">TQ-C</option>
-                    <option value="D">TQ-D</option>
                 </select>
             </div>
             <div>
@@ -125,7 +114,6 @@ export async function renderizarMovimientos(contenedor) {
     tipoSelect.addEventListener('change', actualizarCampos);
     actualizarCampos();
 
-    // Previsualización de imagen
     const fileInput = document.getElementById('foto-file');
     const camInput = document.getElementById('foto-cam');
     const preview = document.getElementById('preview-foto');
@@ -154,8 +142,8 @@ export async function renderizarMovimientos(contenedor) {
             payload.acidez = parseFloat(document.getElementById('acidez')?.value) || null;
         } else {
             payload.toneladas_despachadas = parseFloat(document.getElementById('toneladas').value) || null;
-            payload.procedencia = document.getElementById('procedencia')?.value || null;
-            payload.tanque_origen = document.getElementById('tanque-origen')?.value || null;
+            payload.tanque_origen = document.getElementById('tanque-origen')?.value;
+            if (!payload.tanque_origen) return alert('Seleccione el tanque de origen.');
             const certificado = document.getElementById('certificado')?.checked;
             if (certificado) {
                 const conc = document.getElementById('cert-conc')?.value;
@@ -198,7 +186,6 @@ export async function renderizarMovimientos(contenedor) {
                     <span>${new Date(m.fecha_movimiento).toLocaleString()}</span>
                 </div>
                 <p class="text-sm text-slate-300">Peso: ${m.peso_neto ?? m.toneladas_despachadas ?? '-'} ton | Acidez: ${m.acidez ?? '-'}%</p>
-                ${m.procedencia ? `<p class="text-xs text-slate-400">Procedencia: ${m.procedencia}</p>` : ''}
                 ${m.tanque_origen ? `<p class="text-xs text-slate-400">Tanque origen: ${m.tanque_origen}</p>` : ''}
                 ${m.observaciones ? `<p class="text-xs text-slate-400">${m.observaciones}</p>` : ''}
                 ${m.foto_url ? `<img src="${supabase.storage.from('biblioteca').getPublicUrl(m.foto_url).data.publicUrl}" class="mt-2 max-h-24 rounded">` : ''}
