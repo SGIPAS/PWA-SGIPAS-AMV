@@ -1,4 +1,4 @@
-// ocp Módulo de Laboratorio – certificaciones de calidad y control de disposición final
+// ocp Módulo de Laboratorio – certificaciones de ácido, azufre y disposición final
 import { supabase } from '../supabase-client.js';
 
 let currentUserRole = null;

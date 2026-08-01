@@ -5,13 +5,11 @@ import { cargarModuloUsuarios } from './modules/usuarios/index.js';
 import { mostrarLogin, cerrarSesion } from './auth.js';
 import { iniciarPresencia, detenerPresencia } from './modules/presencia.js';
 
-// ocp Obtener el rol del usuario actual
 async function obtenerRol() {
     const { data: { user } } = await supabase.auth.getUser();
     return user?.user_metadata?.rol || 'operador';
 }
 
-// ocp Actualizar badge de notificaciones
 async function actualizarBadgeNotificaciones() {
     const badge = document.getElementById('badge-notificaciones');
     if (!badge) return;
@@ -26,7 +24,6 @@ async function actualizarBadgeNotificaciones() {
     badge.classList.toggle('hidden', count === 0);
 }
 
-// ocp Mostrar u ocultar botones del sidebar según el rol
 async function construirSidebar(rol) {
     const botones = {
         dashboard:     document.getElementById('btn-nav-dashboard'),
@@ -36,7 +33,7 @@ async function construirSidebar(rol) {
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
         paradas:       document.getElementById('btn-nav-paradas'),
-        laboratorio:   document.getElementById('btn-nav-laboratorio'),   // NUEVO
+        laboratorio:   document.getElementById('btn-nav-laboratorio'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -48,7 +45,7 @@ async function construirSidebar(rol) {
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
         paradas:       ['admin', 'supervisor'].includes(rol),
-        laboratorio:   ['admin', 'analista', 'supervisor', 'operador', 'inspector_ssl'].includes(rol), // todos lo ven
+        laboratorio:   true,   // todos los autenticados pueden verlo
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -57,7 +54,6 @@ async function construirSidebar(rol) {
     }
 }
 
-// ocp Rellenar datos del usuario en el sidebar
 function mostrarInfoUsuario() {
     supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return;
@@ -73,7 +69,6 @@ function mostrarInfoUsuario() {
     });
 }
 
-// ocp Cambiar contraseña
 function abrirCambioPassword() {
     const contenedor = document.getElementById('app-content');
     contenedor.innerHTML = `
@@ -97,20 +92,17 @@ function abrirCambioPassword() {
     });
 }
 
-// ocp Inicio de la aplicación
 document.addEventListener('DOMContentLoaded', async () => {
     const sidebarEl = document.getElementById('sidebar');
     const menuToggle = document.getElementById('menu-toggle');
     const footerEl = document.getElementById('sidebar-footer');
 
-    // 1. Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
         mostrarLogin();
         return;
     }
 
-    // 2. Validar usuario
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
         await supabase.auth.signOut();
@@ -121,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rol = user.user_metadata?.rol || 'operador';
     const userName = user.user_metadata?.nombre_completo || user.email;
 
-    // 3. Mostrar sidebar y aplicar restricciones
     if (sidebarEl) {
         sidebarEl.classList.remove('hidden');
         if (window.innerWidth < 768) {
@@ -133,7 +124,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await construirSidebar(rol);
     mostrarInfoUsuario();
 
-    // 4. Agregar notificaciones, cerrar sesión y presencia en el footer del sidebar
     if (footerEl) {
         const badgeHTML = `
             <button id="btn-notificaciones" class="w-full flex items-center justify-between p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
@@ -167,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluido Laboratorio)
+    // Conexión de botones (incluido Laboratorio)
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -177,103 +167,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
     const btnParadas = document.getElementById('btn-nav-paradas');
-    const btnLaboratorio = document.getElementById('btn-nav-laboratorio');   // NUEVO
+    const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
-        btnDashboard.addEventListener('click', () => {
-            import('./modules/dashboard/index.js')
-                .then(m => m.cargarDashboard())
-                .catch(err => console.error('Error al cargar Panel de Indicadores:', err));
-        });
+        btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard()));
     }
     if (btnBiblioteca && !btnBiblioteca.classList.contains('hidden')) {
-        btnBiblioteca.addEventListener('click', () => {
-            import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca());
-        });
+        btnBiblioteca.addEventListener('click', () => import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca()));
     }
     if (btnMantenimiento && !btnMantenimiento.classList.contains('hidden')) {
         btnMantenimiento.addEventListener('click', cargarModuloOrdenes);
     }
     if (btnOperaciones && !btnOperaciones.classList.contains('hidden')) {
-        btnOperaciones.addEventListener('click', () => {
-            import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones());
-        });
+        btnOperaciones.addEventListener('click', () => import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones()));
     }
     if (btnUsuarios && !btnUsuarios.classList.contains('hidden')) {
         btnUsuarios.addEventListener('click', cargarModuloUsuarios);
     }
     if (btnSSL && !btnSSL.classList.contains('hidden')) {
-        btnSSL.addEventListener('click', () => {
-            import('./modules/ssl/index.js').then(m => m.cargarModuloSSL());
-        });
+        btnSSL.addEventListener('click', () => import('./modules/ssl/index.js').then(m => m.cargarModuloSSL()));
     }
     if (btnBitacora && !btnBitacora.classList.contains('hidden')) {
-        btnBitacora.addEventListener('click', () => {
-            import('./modules/bitacora.js').then(m => m.cargarBitacora());
-        });
+        btnBitacora.addEventListener('click', () => import('./modules/bitacora.js').then(m => m.cargarBitacora()));
     }
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
-        btnReportes.addEventListener('click', () => {
-            import('./modules/reportes/index.js')
-                .then(m => m.cargarReportes())
-                .catch(err => console.error('Error al cargar Reportes:', err));
-        });
+        btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
     }
     if (btnParadas && !btnParadas.classList.contains('hidden')) {
-        btnParadas.addEventListener('click', () => {
-            import('./modules/paradas.js')
-                .then(m => m.cargarParadas())
-                .catch(err => console.error('Error al cargar Paradas de Planta:', err));
-        });
+        btnParadas.addEventListener('click', () => import('./modules/paradas.js').then(m => m.cargarParadas()));
     }
-    // NUEVO: Laboratorio
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
-        btnLaboratorio.addEventListener('click', () => {
-            import('./modules/laboratorio.js')
-                .then(m => m.cargarLaboratorio())
-                .catch(err => console.error('Error al cargar Laboratorio:', err));
-        });
+        btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
     }
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
 
-    // 6. Menú hamburguesa universal
     if (menuToggle && sidebarEl) {
         menuToggle.addEventListener('click', () => {
             sidebarEl.classList.toggle('sidebar-closed');
             const main = document.querySelector('main');
-            if (main) {
-                if (sidebarEl.classList.contains('sidebar-closed')) {
-                    main.style.marginLeft = '0';
-                } else {
-                    main.style.marginLeft = '';
-                }
-            }
+            if (main) main.style.marginLeft = sidebarEl.classList.contains('sidebar-closed') ? '0' : '';
         });
-
         sidebarEl.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (window.innerWidth < 768) {
                     sidebarEl.classList.add('sidebar-closed');
-                    const main = document.querySelector('main');
-                    if (main) main.style.marginLeft = '0';
+                    document.querySelector('main').style.marginLeft = '0';
                 }
             });
         });
     }
 
-    // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
-
-    // 8. Actualizar badge y cargar módulo inicial (Panel de Indicadores)
     await actualizarBadgeNotificaciones();
-    import('./modules/dashboard/index.js')
-        .then(m => m.cargarDashboard())
-        .catch(err => {
-            console.error('Error al cargar Panel de Indicadores:', err);
-            document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel principal.</p>`;
-        });
+    import('./modules/dashboard/index.js').then(m => m.cargarDashboard()).catch(err => {
+        console.error(err);
+        document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
+    });
 
-    // 9. Limpiar presencia al salir
     window.addEventListener('beforeunload', () => detenerPresencia());
 });
