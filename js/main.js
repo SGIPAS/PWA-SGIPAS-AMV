@@ -35,7 +35,8 @@ async function construirSidebar(rol) {
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
-        paradas:       document.getElementById('btn-nav-paradas'),   // NUEVO
+        paradas:       document.getElementById('btn-nav-paradas'),
+        laboratorio:   document.getElementById('btn-nav-laboratorio'),   // NUEVO
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -46,7 +47,8 @@ async function construirSidebar(rol) {
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
-        paradas:       ['admin', 'supervisor'].includes(rol),        // NUEVO
+        paradas:       ['admin', 'supervisor'].includes(rol),
+        laboratorio:   ['admin', 'analista', 'supervisor', 'operador', 'inspector_ssl'].includes(rol), // todos lo ven
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -165,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluido Paradas de Planta)
+    // 5. Conectar botones de navegación (incluido Laboratorio)
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -174,7 +176,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
-    const btnParadas = document.getElementById('btn-nav-paradas');   // NUEVO
+    const btnParadas = document.getElementById('btn-nav-paradas');
+    const btnLaboratorio = document.getElementById('btn-nav-laboratorio');   // NUEVO
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
         btnDashboard.addEventListener('click', () => {
@@ -216,12 +219,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .catch(err => console.error('Error al cargar Reportes:', err));
         });
     }
-    // NUEVO: Paradas de Planta
     if (btnParadas && !btnParadas.classList.contains('hidden')) {
         btnParadas.addEventListener('click', () => {
             import('./modules/paradas.js')
                 .then(m => m.cargarParadas())
                 .catch(err => console.error('Error al cargar Paradas de Planta:', err));
+        });
+    }
+    // NUEVO: Laboratorio
+    if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
+        btnLaboratorio.addEventListener('click', () => {
+            import('./modules/laboratorio.js')
+                .then(m => m.cargarLaboratorio())
+                .catch(err => console.error('Error al cargar Laboratorio:', err));
         });
     }
 
