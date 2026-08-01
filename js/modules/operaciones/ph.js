@@ -1,4 +1,4 @@
-// ocp Registro de pH de aguas
+// ocp Registro de pH de aguas con soda cáustica
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarPH(contenedor, rol) {
@@ -10,7 +10,7 @@ export async function renderizarPH(contenedor, rol) {
                     <div>
                         <label class="block text-slate-400 text-sm">Punto de muestreo</label>
                         <select id="ph-punto" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                            <option value="caldera de acido">Caldera De Ácido</option>
+                            <option value="caldera de acido">Caldera de Ácido</option>
                             <option value="calderin">Calderín</option>
                             <option value="torre enfriamiento">Torre Enfriamiento</option>
                             <option value="caldera sulfato">Caldera Sulfato</option>
@@ -20,6 +20,10 @@ export async function renderizarPH(contenedor, rol) {
                     <div>
                         <label class="block text-slate-400 text-sm">Valor pH</label>
                         <input type="number" step="0.01" id="ph-valor" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm">Soda Cáustica (ml)</label>
+                        <input type="number" step="0.1" id="ph-soda" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Guardar</button>
                 </form>
@@ -37,11 +41,13 @@ export async function renderizarPH(contenedor, rol) {
         e.preventDefault();
         const punto = document.getElementById('ph-punto').value;
         const valor = parseFloat(document.getElementById('ph-valor').value);
+        const soda = parseFloat(document.getElementById('ph-soda')?.value) || null;
         const { data: { user } } = await supabase.auth.getUser();
 
         const { error } = await supabase.from('ph_aguas').insert([{
             punto_muestreo: punto,
             valor_ph: valor,
+            soda_ml: soda,
             registrado_por: user.id,
             fecha_registro: new Date().toISOString().split('T')[0]
         }]);
@@ -71,6 +77,7 @@ async function cargarListaPH() {
             <span class="text-slate-400">${r.fecha_registro}</span>
             <span class="ml-2 font-bold text-white">${r.punto_muestreo}</span>
             <span class="ml-2 text-blue-400">pH ${r.valor_ph}</span>
+            ${r.soda_ml ? `<span class="ml-2 text-yellow-400">Soda: ${r.soda_ml} ml</span>` : ''}
         </div>
     `).join('');
 }
