@@ -36,7 +36,8 @@ async function construirSidebar(rol) {
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
         paradas:       document.getElementById('btn-nav-paradas'),
-        inventario:    document.getElementById('btn-nav-inventario'),   // NUEVO
+        inventario:    document.getElementById('btn-nav-inventario'),
+        disposicion:   document.getElementById('btn-nav-disposicion'),   // NUEVO
         laboratorio:   document.getElementById('btn-nav-laboratorio'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
@@ -49,8 +50,9 @@ async function construirSidebar(rol) {
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
         paradas:       ['admin', 'supervisor'].includes(rol),
-        inventario:    ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
-        laboratorio:   true,   // todos los autenticados pueden verlo
+        inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
+        disposicion:   ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
+        laboratorio:   true,
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluido el nuevo Inventario y Producción)
+    // 5. Conectar botones de navegación (incluido Disposición Final)
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -179,70 +181,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
     const btnParadas = document.getElementById('btn-nav-paradas');
+    const btnInventario = document.getElementById('btn-nav-inventario');
+    const btnDisposicion = document.getElementById('btn-nav-disposicion');   // NUEVO
     const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
-    const btnInventario = document.getElementById('btn-nav-inventario');   // NUEVO
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
-        btnDashboard.addEventListener('click', () => {
-            import('./modules/dashboard/index.js')
-                .then(m => m.cargarDashboard())
-                .catch(err => console.error('Error al cargar Panel de Indicadores:', err));
-        });
+        btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard()));
     }
     if (btnBiblioteca && !btnBiblioteca.classList.contains('hidden')) {
-        btnBiblioteca.addEventListener('click', () => {
-            import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca());
-        });
+        btnBiblioteca.addEventListener('click', () => import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca()));
     }
     if (btnMantenimiento && !btnMantenimiento.classList.contains('hidden')) {
         btnMantenimiento.addEventListener('click', cargarModuloOrdenes);
     }
     if (btnOperaciones && !btnOperaciones.classList.contains('hidden')) {
-        btnOperaciones.addEventListener('click', () => {
-            import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones());
-        });
+        btnOperaciones.addEventListener('click', () => import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones()));
     }
     if (btnUsuarios && !btnUsuarios.classList.contains('hidden')) {
         btnUsuarios.addEventListener('click', cargarModuloUsuarios);
     }
     if (btnSSL && !btnSSL.classList.contains('hidden')) {
-        btnSSL.addEventListener('click', () => {
-            import('./modules/ssl/index.js').then(m => m.cargarModuloSSL());
-        });
+        btnSSL.addEventListener('click', () => import('./modules/ssl/index.js').then(m => m.cargarModuloSSL()));
     }
     if (btnBitacora && !btnBitacora.classList.contains('hidden')) {
-        btnBitacora.addEventListener('click', () => {
-            import('./modules/bitacora.js').then(m => m.cargarBitacora());
-        });
+        btnBitacora.addEventListener('click', () => import('./modules/bitacora.js').then(m => m.cargarBitacora()));
     }
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
-        btnReportes.addEventListener('click', () => {
-            import('./modules/reportes/index.js')
-                .then(m => m.cargarReportes())
-                .catch(err => console.error('Error al cargar Reportes:', err));
-        });
+        btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
     }
     if (btnParadas && !btnParadas.classList.contains('hidden')) {
-        btnParadas.addEventListener('click', () => {
-            import('./modules/paradas.js')
-                .then(m => m.cargarParadas())
-                .catch(err => console.error('Error al cargar Paradas de Planta:', err));
+        btnParadas.addEventListener('click', () => import('./modules/paradas.js').then(m => m.cargarParadas()));
+    }
+    if (btnInventario && !btnInventario.classList.contains('hidden')) {
+        btnInventario.addEventListener('click', () => import('./modules/inventario/index.js').then(m => m.cargarInventario()));
+    }
+    // NUEVO: Disposición Final
+    if (btnDisposicion && !btnDisposicion.classList.contains('hidden')) {
+        btnDisposicion.addEventListener('click', () => {
+            import('./modules/disposicion/index.js')
+                .then(m => m.cargarDisposicion())
+                .catch(err => console.error('Error al cargar Disposición:', err));
         });
     }
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
-        btnLaboratorio.addEventListener('click', () => {
-            import('./modules/laboratorio.js')
-                .then(m => m.cargarLaboratorio())
-                .catch(err => console.error('Error al cargar Laboratorio:', err));
-        });
-    }
-    // NUEVO: Inventario y Producción
-    if (btnInventario && !btnInventario.classList.contains('hidden')) {
-        btnInventario.addEventListener('click', () => {
-            import('./modules/inventario/index.js')
-                .then(m => m.cargarInventario())
-                .catch(err => console.error('Error al cargar Inventario:', err));
-        });
+        btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
     }
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
@@ -252,21 +234,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         menuToggle.addEventListener('click', () => {
             sidebarEl.classList.toggle('sidebar-closed');
             const main = document.querySelector('main');
-            if (main) {
-                if (sidebarEl.classList.contains('sidebar-closed')) {
-                    main.style.marginLeft = '0';
-                } else {
-                    main.style.marginLeft = '';
-                }
-            }
+            if (main) main.style.marginLeft = sidebarEl.classList.contains('sidebar-closed') ? '0' : '';
         });
-
         sidebarEl.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (window.innerWidth < 768) {
                     sidebarEl.classList.add('sidebar-closed');
-                    const main = document.querySelector('main');
-                    if (main) main.style.marginLeft = '0';
+                    document.querySelector('main').style.marginLeft = '0';
                 }
             });
         });
@@ -275,14 +249,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Actualizar badge y cargar módulo inicial (Panel de Indicadores)
+    // 8. Actualizar badge y cargar módulo inicial
     await actualizarBadgeNotificaciones();
-    import('./modules/dashboard/index.js')
-        .then(m => m.cargarDashboard())
-        .catch(err => {
-            console.error('Error al cargar Panel de Indicadores:', err);
-            document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel principal.</p>`;
-        });
+    import('./modules/dashboard/index.js').then(m => m.cargarDashboard()).catch(err => {
+        console.error(err);
+        document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
+    });
 
     // 9. Limpiar presencia al salir
     window.addEventListener('beforeunload', () => detenerPresencia());

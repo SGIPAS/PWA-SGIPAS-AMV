@@ -169,7 +169,7 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="space-y-3">
                 <div>
                     <h4 class="text-xs font-semibold text-slate-300 mb-1">Certificaciones de Ácido</h4>
-                    ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104'].map(tq => {
+                    ${['A','B','C','D'].map(tq => {
                         const cert = certPorTanque[tq];
                         if (!cert) return `<p class="text-xs text-slate-500">TQ-${tq}: Sin certificación</p>`;
                         const vencimiento = new Date(cert.fecha_vigencia);

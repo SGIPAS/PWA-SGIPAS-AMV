@@ -1,0 +1,1 @@
+// ocp Utilidades de Disposición Final (vacío por ahora, preparado para funciones compartidas)
