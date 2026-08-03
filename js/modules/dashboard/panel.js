@@ -1,52 +1,48 @@
-// ocp Panel de Control – semáforos y KPIs completos (v2)
+// ocp Panel de Control – semáforos y KPIs completos (v4 con resultados de laboratorio)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
 export async function renderizarPanel(contenedor, rol) {
     try {
-        // Obtener todos los datos en paralelo
+        // Obtener todos los datos en paralelo (incluyendo laboratorio)
         const [
-            acidoRes, phRes, otRes, consumoRes, emisionesRes, motoresRes, fundicionRes, inventarioRes
+            acidoRes, phRes, otRes, consumoRes, emisionesRes, motoresRes, fundicionRes, inventarioRes,
+            certAcidoRes, certAzufreRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(50),
             supabase.from('ordenes_trabajo').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
             supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(10),
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
-            supabase.from('temperaturas_motores').select('*').order('created_at', { ascending: false }).limit(50),
+            supabase.from('mediciones_motores').select('temperatura, punto_medicion!inner(tag_equipo)').order('created_at', { ascending: false }).limit(200),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
-            supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(20)
+            supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(50),
+            // Obtener últimas certificaciones de ácido por tanque
+            supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
+            // Obtener última acidez de azufre (de fundicion_diaria)
+            supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1)
         ]);
 
         const ultimoAcido = acidoRes.data?.[0];
         const phTodos = phRes.data || [];
         const pendientes = otRes.count ?? 0;
 
-        // Último pH por punto
         const ultimoPH = {};
-        phTodos.forEach(p => {
-            if (!ultimoPH[p.punto_muestreo]) ultimoPH[p.punto_muestreo] = p.valor_ph;
-        });
+        phTodos.forEach(p => { if (!ultimoPH[p.punto_muestreo]) ultimoPH[p.punto_muestreo] = p.valor_ph; });
 
-        // Consumo: último valor por tipo
         const ultimoConsumo = {};
-        (consumoRes.data || []).forEach(c => {
-            if (!ultimoConsumo[c.tipo]) ultimoConsumo[c.tipo] = c.valor_m3;
-        });
+        (consumoRes.data || []).forEach(c => { if (!ultimoConsumo[c.tipo]) ultimoConsumo[c.tipo] = c.valor_m3; });
 
-        // Emisiones: último valor
         const ultimaEmision = emisionesRes.data?.[0];
 
-        // Motores: último valor por equipo (tag)
-        const ultimoMotor = {};
+        const ultimoMotorTemp = {};
         (motoresRes.data || []).forEach(m => {
-            if (!ultimoMotor[m.tag_equipo]) ultimoMotor[m.tag_equipo] = m.temperatura;
+            const tag = m.punto_medicion?.tag_equipo;
+            if (tag && !ultimoMotorTemp[tag]) ultimoMotorTemp[tag] = m.temperatura;
         });
 
-        // Fundición: último día
         const ultimaFundicion = fundicionRes.data?.[0];
 
-        // Inventario: totales del día (entradas de azufre, salidas de ácido)
         const hoy = new Date().toISOString().split('T')[0];
         let entradaAzufre = 0, salidaAcido = 0;
         (inventarioRes.data || []).forEach(m => {
@@ -59,6 +55,17 @@ export async function renderizarPanel(contenedor, rol) {
                 }
             }
         });
+
+        // Procesar certificaciones de ácido
+        const certsAcido = certAcidoRes.data || [];
+        // Agrupar por tanque (última)
+        const certPorTanque = {};
+        certsAcido.forEach(c => {
+            if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c;
+        });
+
+        // Procesar acidez de azufre (de fundicion)
+        const azufre = certAzufreRes.data?.[0] || {}; // contiene acidez_tq_a, etc.
 
         // Construir HTML
         let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">`;
@@ -87,9 +94,7 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
                 <h3 class="text-sm text-slate-400">pH ${p.nombre}</h3>
                 <p class="text-2xl font-bold">${valor?.toFixed(2) ?? '--'}</p>
-                <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(semaforo)}">
-                    ${valor ? '●' : 'Sin datos'}
-                </span>
+                <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(semaforo)}">${valor ? '●' : 'Sin datos'}</span>
             </div>`;
         });
 
@@ -110,9 +115,7 @@ export async function renderizarPanel(contenedor, rol) {
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Emisiones SO₂</h3>
             <p class="text-2xl font-bold">${so2Val?.toFixed(1) ?? '--'} ppm</p>
-            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">
-                ${so2Val ? '●' : 'Sin datos'}
-            </span>
+            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">${so2Val ? '●' : 'Sin datos'}</span>
         </div>`;
 
         // ---- Tarjeta Fundición ----
@@ -142,17 +145,52 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        // ---- Motores (lista simple) ----
-        const equiposMotor = Object.keys(ultimoMotor).sort();
+        // ---- Motores (lista por equipo) ----
+        const equiposMotor = Object.keys(ultimoMotorTemp).sort();
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700 col-span-1 md:col-span-2">
             <h3 class="text-sm text-slate-400 mb-2">Temperatura de Motores (°C)</h3>
             ${equiposMotor.length ? `
             <div class="grid grid-cols-2 md:grid-cols-3 gap-1 text-sm">
                 ${equiposMotor.map(tag => `
-                    <div><span class="text-slate-300">${tag}:</span> <span class="font-bold">${ultimoMotor[tag]?.toFixed(1)}</span></div>
+                    <div><span class="text-slate-300">${tag}:</span> <span class="font-bold">${ultimoMotorTemp[tag]?.toFixed(1)}</span></div>
                 `).join('')}
             </div>` : '<p class="text-sm text-slate-400">Sin datos de motores.</p>'}
+        </div>`;
+
+        // ---- Laboratorio (Certificaciones Ácido y Azufre) ----
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700 col-span-1 md:col-span-2">
+            <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Certificaciones de Ácido (vigencia)</h4>
+                    ${['A','B','C','D'].map(tq => {
+                        const cert = certPorTanque[tq];
+                        if (!cert) return `<p class="text-xs text-slate-500">TQ-${tq}: Sin certificación</p>`;
+                        const vencimiento = new Date(cert.fecha_vigencia);
+                        const hoy = new Date();
+                        const diasRestantes = Math.ceil((vencimiento - hoy) / (1000*60*60*24));
+                        const vencido = diasRestantes < 0;
+                        return `
+                        <div class="flex items-center justify-between text-xs py-1">
+                            <span class="font-medium">TQ-${tq}: ${cert.concentracion}%</span>
+                            <span class="${vencido ? 'text-red-400' : 'text-green-400'}">
+                                ${vencido ? 'Vencido' : `Vence en ${diasRestantes} días`} (${new Date(cert.fecha_vigencia).toLocaleDateString('es-VE')})
+                            </span>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <div>
+                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Acidez de Azufre (tanques)</h4>
+                    <div class="grid grid-cols-2 gap-1 text-xs">
+                        <div>TQ-A: <span class="font-bold">${azufre.acidez_tq_a ?? '--'}%</span></div>
+                        <div>TQ-B: <span class="font-bold">${azufre.acidez_tq_b ?? '--'}%</span></div>
+                        <div>TQ-C: <span class="font-bold">${azufre.acidez_tq_c ?? '--'}%</span></div>
+                        <div>TQ-D: <span class="font-bold">${azufre.acidez_tq_d ?? '--'}%</span></div>
+                    </div>
+                </div>
+            </div>
         </div>`;
 
         html += `</div>`;
