@@ -1,10 +1,9 @@
-// ocp Panel de Control – semáforos y KPIs completos (v4 con resultados de laboratorio)
+// ocp Panel de Control – semáforos y KPIs completos (v5 con tres tarjetas grandes en línea)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
 export async function renderizarPanel(contenedor, rol) {
     try {
-        // Obtener todos los datos en paralelo (incluyendo laboratorio)
         const [
             acidoRes, phRes, otRes, consumoRes, emisionesRes, motoresRes, fundicionRes, inventarioRes,
             certAcidoRes, certAzufreRes
@@ -17,9 +16,7 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('mediciones_motores').select('temperatura, punto_medicion!inner(tag_equipo)').order('created_at', { ascending: false }).limit(200),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
             supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(50),
-            // Obtener últimas certificaciones de ácido por tanque
             supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
-            // Obtener última acidez de azufre (de fundicion_diaria)
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1)
         ]);
 
@@ -56,21 +53,16 @@ export async function renderizarPanel(contenedor, rol) {
             }
         });
 
-        // Procesar certificaciones de ácido
         const certsAcido = certAcidoRes.data || [];
-        // Agrupar por tanque (última)
         const certPorTanque = {};
-        certsAcido.forEach(c => {
-            if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c;
-        });
+        certsAcido.forEach(c => { if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c; });
 
-        // Procesar acidez de azufre (de fundicion)
-        const azufre = certAzufreRes.data?.[0] || {}; // contiene acidez_tq_a, etc.
+        const azufre = certAzufreRes.data?.[0] || {};
 
-        // Construir HTML
-        let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">`;
+        // ---- Cuadrícula superior con tarjetas pequeñas ----
+        let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">`;
 
-        // ---- Tarjeta Ácido ----
+        // Tarjeta Ácido
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Ácido Sulfúrico</h3>
@@ -80,7 +72,7 @@ export async function renderizarPanel(contenedor, rol) {
             </span>
         </div>`;
 
-        // ---- Tarjetas pH ----
+        // Tarjetas pH
         const puntosPH = [
             { nombre: 'caldera de acido', key: 'ph_caldera_acido' },
             { nombre: 'calderin', key: 'ph_calderin' },
@@ -98,7 +90,7 @@ export async function renderizarPanel(contenedor, rol) {
             </div>`;
         });
 
-        // ---- Tarjeta OTs Pendientes ----
+        // Tarjeta OTs Pendientes
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">OTs Pendientes</h3>
@@ -108,7 +100,7 @@ export async function renderizarPanel(contenedor, rol) {
             </span>
         </div>`;
 
-        // ---- Tarjeta Emisiones SO₂ ----
+        // Tarjeta Emisiones SO₂
         const so2Val = ultimaEmision?.ppm_so2;
         const so2Sem = colorSemaforo(so2Val, UMBRALES.so2);
         html += `
@@ -118,7 +110,7 @@ export async function renderizarPanel(contenedor, rol) {
             <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">${so2Val ? '●' : 'Sin datos'}</span>
         </div>`;
 
-        // ---- Tarjeta Fundición ----
+        // Tarjeta Fundición
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Fundición (hoy)</h3>
@@ -126,7 +118,7 @@ export async function renderizarPanel(contenedor, rol) {
             <span class="text-xs text-slate-400">Acidez TQ-A: ${ultimaFundicion?.acidez_tq_a ?? '--'}%</span>
         </div>`;
 
-        // ---- Tarjeta Inventario (balance del día) ----
+        // Tarjeta Inventario
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Inventario (hoy)</h3>
@@ -134,9 +126,14 @@ export async function renderizarPanel(contenedor, rol) {
             <p class="text-sm">Salida Ácido: <span class="font-bold">${salidaAcido.toFixed(1)} ton</span></p>
         </div>`;
 
-        // ---- Consumo de Agua (mini tabla) ----
+        html += `</div>`; // Fin de la cuadrícula de tarjetas pequeñas
+
+        // ---- Fila de tres tarjetas grandes (Consumo, Motores, Laboratorio) ----
+        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
+
+        // Consumo de Agua
         html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700 col-span-1 md:col-span-2">
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">Consumo de Agua (último registro, m³)</h3>
             <div class="grid grid-cols-2 gap-1 text-sm">
                 ${['general','planta acido','caldera de sulfato','caldera acido','planta sulfato'].map(tipo => `
@@ -145,27 +142,27 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        // ---- Motores (lista por equipo) ----
+        // Motores
         const equiposMotor = Object.keys(ultimoMotorTemp).sort();
         html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700 col-span-1 md:col-span-2">
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">Temperatura de Motores (°C)</h3>
             ${equiposMotor.length ? `
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-1 text-sm">
+            <div class="grid grid-cols-2 gap-1 text-sm">
                 ${equiposMotor.map(tag => `
                     <div><span class="text-slate-300">${tag}:</span> <span class="font-bold">${ultimoMotorTemp[tag]?.toFixed(1)}</span></div>
                 `).join('')}
             </div>` : '<p class="text-sm text-slate-400">Sin datos de motores.</p>'}
         </div>`;
 
-        // ---- Laboratorio (Certificaciones Ácido y Azufre) ----
+        // Laboratorio
         html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700 col-span-1 md:col-span-2">
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-3">
                 <div>
-                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Certificaciones de Ácido (vigencia)</h4>
-                    ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104'].map(tq => {
+                    <h4 class="text-xs font-semibold text-slate-300 mb-1">Certificaciones de Ácido</h4>
+                    ${['A','B','C','D'].map(tq => {
                         const cert = certPorTanque[tq];
                         if (!cert) return `<p class="text-xs text-slate-500">TQ-${tq}: Sin certificación</p>`;
                         const vencimiento = new Date(cert.fecha_vigencia);
@@ -176,13 +173,13 @@ export async function renderizarPanel(contenedor, rol) {
                         <div class="flex items-center justify-between text-xs py-1">
                             <span class="font-medium">TQ-${tq}: ${cert.concentracion}%</span>
                             <span class="${vencido ? 'text-red-400' : 'text-green-400'}">
-                                ${vencido ? 'Vencido' : `Vence en ${diasRestantes} días`} (${new Date(cert.fecha_vigencia).toLocaleDateString('es-VE')})
+                                ${vencido ? 'Vencido' : `Vence en ${diasRestantes} días`}
                             </span>
                         </div>`;
                     }).join('')}
                 </div>
                 <div>
-                    <h4 class="text-xs font-semibold text-slate-300 mb-2">Acidez de Azufre (tanques)</h4>
+                    <h4 class="text-xs font-semibold text-slate-300 mb-1">Acidez de Azufre</h4>
                     <div class="grid grid-cols-2 gap-1 text-xs">
                         <div>TQ-A: <span class="font-bold">${azufre.acidez_tq_a ?? '--'}%</span></div>
                         <div>TQ-B: <span class="font-bold">${azufre.acidez_tq_b ?? '--'}%</span></div>
@@ -193,7 +190,8 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        html += `</div>`;
+        html += `</div>`; // Fin de la fila de tres
+
         contenedor.innerHTML = html;
 
     } catch (err) {
