@@ -1,4 +1,4 @@
-// ocp Panel de Control – semáforos, KPIs, balance de azufre y más
+// ocp Panel de Control – semáforos, KPIs, balance de azufre (sin tarjeta de inventario redundante)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
@@ -38,19 +38,6 @@ export async function renderizarPanel(contenedor, rol) {
             if (tag && !ultimoMotorTemp[tag]) ultimoMotorTemp[tag] = m.temperatura;
         });
         const ultimaFundicion = fundicionRes.data?.[0];
-
-        // Inventario del día
-        let entradaAzufre = 0, salidaAcido = 0;
-        (inventarioRes.data || []).forEach(m => {
-            const fecha = m.fecha_movimiento?.split('T')[0];
-            if (fecha === hoy) {
-                if (m.tipo_movimiento === 'recepcion_solido' || m.tipo_movimiento === 'recepcion_liquido') {
-                    entradaAzufre += (m.peso_neto || 0);
-                } else if (m.tipo_movimiento === 'despacho_sulfato' || m.tipo_movimiento === 'despacho_cisterna') {
-                    salidaAcido += (m.toneladas_despachadas || 0);
-                }
-            }
-        });
 
         // Balance de azufre
         const bigBagsHoy = ultimaFundicion?.big_bags || 0;
@@ -123,14 +110,6 @@ export async function renderizarPanel(contenedor, rol) {
             <h3 class="text-sm text-slate-400">Fundición (hoy)</h3>
             <p class="text-2xl font-bold">${bigBagsHoy} BB</p>
             <span class="text-xs text-slate-400">Acidez TQ-A: ${ultimaFundicion?.acidez_tq_a ?? '--'}%</span>
-        </div>`;
-
-        // Tarjeta Inventario
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">Inventario (hoy)</h3>
-            <p class="text-sm">Entrada Azufre: <span class="font-bold">${entradaAzufre.toFixed(1)} ton</span></p>
-            <p class="text-sm">Salida Ácido: <span class="font-bold">${salidaAcido.toFixed(1)} ton</span></p>
         </div>`;
 
         // ---- Tarjeta Balance de Azufre con velocímetro ----
