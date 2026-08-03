@@ -184,7 +184,7 @@ export async function renderizarPanel(contenedor, rol) {
                 <div>
                     <h4 class="text-xs font-semibold text-slate-300 mb-2">Acidez de Azufre (tanques)</h4>
                     <div class="grid grid-cols-2 gap-1 text-xs">
-                        <div>TQ-A: <span class="font-bold">${azufre.acidez_tq_a ?? '--'}%</span></div>
+                        <div>TQ-3101: <span class="font-bold">${azufre.acidez_tq_a ?? '--'}%</span></div>
                         <div>TQ-B: <span class="font-bold">${azufre.acidez_tq_b ?? '--'}%</span></div>
                         <div>TQ-C: <span class="font-bold">${azufre.acidez_tq_c ?? '--'}%</span></div>
                         <div>TQ-D: <span class="font-bold">${azufre.acidez_tq_d ?? '--'}%</span></div>
