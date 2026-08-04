@@ -142,15 +142,28 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // Generar opciones de personal (listas fijas – reemplace los nombres de ejemplo)
-        const generarSelectPersonal = (rol) => `
-            <select class="border rounded px-1 w-full select-personal" data-rol="${rol}">
-                <option value="">Seleccione...</option>
-                <option>Nombre 1</option>
-                <option>Nombre 2</option>
-                <option>Nombre 3</option>
-                <option value="OTRO">Otro (especificar)</option>
-            </select>`;
+        // Generar opciones de personal (listas fijas – )
+        const personalPorRol = {
+            'Supervisor': ['wladimir PINO', 'Angel BARRUETA', 'Eduardo ARIAS', 'Heiver RAMIREZ'],
+            'Panelista': ['Angel Solorzano', 'Noelvis Camacho', 'Hilnelio Grcia', 'Jesus E. Trias V.'],
+            'Operador 1': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
+            'Operador 2': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
+            'Operador 3': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
+            'Paramedico': ['Arturo Tenia', 'Joseanny velasquez', 'L. Lisangel Guevara', 'Libeth Velasquez'],
+            'Inspector SSL': ['Luis Soto', 'Gregoria Rodriguez', 'Leydis O. Botavan', 'Liseth Lereico']
+        };
+
+        // ocp Genera un select con las opciones del rol correspondiente
+        const generarSelectPersonal = (rol) => {
+            const nombres = personalPorRol[rol] || [];
+            const opciones = nombres.map(n => `<option>${n}</option>`).join('');
+            return `
+                <select class="border rounded px-1 w-full select-personal" data-rol="${rol}">
+                    <option value="">Seleccione...</option>
+                    ${opciones}
+                    <option value="OTRO">Otro (especificar)</option>
+                </select>`;
+        };
 
         let html = `
         <div id="bitacora-print" class="max-w-4xl mx-auto text-slate-800 bg-white p-6 rounded shadow-lg print:shadow-none print:rounded-none">
