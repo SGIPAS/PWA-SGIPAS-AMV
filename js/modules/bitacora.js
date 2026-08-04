@@ -1,4 +1,4 @@
-// ocp Módulo de Bitácora Digital de Turno – versión final con pH por equipo, grupo editable, acidez en tanques y filtro nocturno corregido
+// ocp Módulo de Bitácora Digital de Turno – con registro de personal y acontecimientos
 import { supabase } from '../supabase-client.js';
 
 let entregaActual = null;
@@ -14,13 +14,7 @@ export async function cargarBitacora() {
         return;
     }
 
-    // Obtener nombre completo desde metadata o desde perfiles
-    let supervisorNombreDefault = user.user_metadata?.nombre_completo;
-    if (!supervisorNombreDefault) {
-        const { data: perfil } = await supabase.from('perfiles').select('nombre_completo').eq('id', user.id).single();
-        supervisorNombreDefault = perfil?.nombre_completo || 'Supervisor';
-    }
-
+    // Determinar turno
     const ahora = new Date();
     const hora = ahora.getHours();
     let fechaInicio, fechaFin, turnoNombre, fechaInicioDate, fechaFinDate;
@@ -50,13 +44,13 @@ export async function cargarBitacora() {
 
     if (entregaExistente) {
         entregaActual = entregaExistente;
-        await generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNombre, entregaExistente, supervisorNombreDefault);
+        await generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNombre, entregaExistente);
     } else {
-        mostrarFormularioInicial(contenedor, user, fechaInicio, fechaFin, turnoNombre, supervisorNombreDefault);
+        mostrarFormularioInicial(contenedor, user, fechaInicio, fechaFin, turnoNombre);
     }
 }
 
-function mostrarFormularioInicial(contenedor, user, fechaInicio, fechaFin, turnoNombre, supervisorDefault) {
+function mostrarFormularioInicial(contenedor, user, fechaInicio, fechaFin, turnoNombre) {
     contenedor.innerHTML = `
         <div class="max-w-md mx-auto bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
             <h2 class="text-xl font-bold text-white mb-4">Nueva Entrega de Turno</h2>
@@ -64,7 +58,7 @@ function mostrarFormularioInicial(contenedor, user, fechaInicio, fechaFin, turno
             <form id="form-inicio-bitacora" class="space-y-4">
                 <div>
                     <label class="block text-slate-400 text-sm mb-1">Supervisor Saliente</label>
-                    <input type="text" id="supervisor-nombre" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" value="${supervisorDefault}" required>
+                    <input type="text" id="supervisor-nombre" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" value="${user.user_metadata?.nombre_completo || ''}" required>
                 </div>
                 <div>
                     <label class="block text-slate-400 text-sm mb-1">Grupo (A, B, C, D)</label>
@@ -232,6 +226,23 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
                 <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Novedades y Órdenes de Trabajo</h2>
                 ${novedades.data?.length ? novedades.data.map(n => `<p class="text-sm">• [${new Date(n.fecha_novedad).toLocaleTimeString()}] ${n.tag_equipo_area}: ${n.descripcion}</p>`).join('') : '<p class="text-sm italic">Sin novedades en el turno.</p>'}
                 ${ordenes.data?.length ? ordenes.data.map(o => `<p class="text-sm">• OT ${o.numero_ot} - ${o.titulo} (Estado: ${o.estado})</p>`).join('') : '<p class="text-sm italic">Sin OTs en el turno.</p>'}
+            </div>
+
+            <!-- NUEVO: Personal de Turno y Acontecimientos -->
+            <div class="mb-4 border-t-2 border-gray-300 pt-3">
+                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Personal de Turno</h2>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><strong>Supervisor:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Panelista:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Operador 1:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Operador 2:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Operador 3:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Paramedico:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Inspector SSL:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                </div>
+
+                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1 mt-4">Acontecimientos del Turno</h2>
+                <textarea class="w-full border rounded p-2 text-sm" rows="4" placeholder="Describa los eventos relevantes ocurridos durante el turno..."></textarea>
             </div>
 
             <!-- Firmas -->
