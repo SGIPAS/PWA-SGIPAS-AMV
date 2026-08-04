@@ -1,4 +1,4 @@
-// ocp Módulo de Bitácora Digital de Turno – con registro de personal y acontecimientos
+// ocp Módulo de Bitácora Digital de Turno – con registro de personal (listas desplegables) y acontecimientos
 import { supabase } from '../supabase-client.js';
 
 let entregaActual = null;
@@ -142,6 +142,16 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
+        // Generar opciones de personal (listas fijas – reemplace los nombres de ejemplo)
+        const generarSelectPersonal = (rol) => `
+            <select class="border rounded px-1 w-full select-personal" data-rol="${rol}">
+                <option value="">Seleccione...</option>
+                <option>Nombre 1</option>
+                <option>Nombre 2</option>
+                <option>Nombre 3</option>
+                <option value="OTRO">Otro (especificar)</option>
+            </select>`;
+
         let html = `
         <div id="bitacora-print" class="max-w-4xl mx-auto text-slate-800 bg-white p-6 rounded shadow-lg print:shadow-none print:rounded-none">
             <style>
@@ -228,17 +238,17 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
                 ${ordenes.data?.length ? ordenes.data.map(o => `<p class="text-sm">• OT ${o.numero_ot} - ${o.titulo} (Estado: ${o.estado})</p>`).join('') : '<p class="text-sm italic">Sin OTs en el turno.</p>'}
             </div>
 
-            <!-- NUEVO: Personal de Turno y Acontecimientos -->
+            <!-- Personal de Turno y Acontecimientos -->
             <div class="mb-4 border-t-2 border-gray-300 pt-3">
                 <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Personal de Turno</h2>
                 <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div><strong>Supervisor:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Panelista:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Operador 1:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Operador 2:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Operador 3:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Paramedico:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
-                    <div><strong>Inspector SSL:</strong> <input type="text" class="border rounded px-1 w-full" placeholder="Nombre"></div>
+                    <div><strong>Supervisor:</strong> ${generarSelectPersonal('Supervisor')}</div>
+                    <div><strong>Panelista:</strong> ${generarSelectPersonal('Panelista')}</div>
+                    <div><strong>Operador 1:</strong> ${generarSelectPersonal('Operador 1')}</div>
+                    <div><strong>Operador 2:</strong> ${generarSelectPersonal('Operador 2')}</div>
+                    <div><strong>Operador 3:</strong> ${generarSelectPersonal('Operador 3')}</div>
+                    <div><strong>Paramedico:</strong> ${generarSelectPersonal('Paramedico')}</div>
+                    <div><strong>Inspector SSL:</strong> ${generarSelectPersonal('Inspector SSL')}</div>
                 </div>
 
                 <h2 class="text-lg font-bold bg-gray-200 px-2 py-1 mt-4">Acontecimientos del Turno</h2>
@@ -273,6 +283,19 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
                 const ton = (cm * 0.432).toFixed(2);
                 const tq = this.dataset.tq;
                 document.getElementById(`ton-${tq.toLowerCase()}`).textContent = ton;
+            });
+        });
+
+        // Permitir escribir nombre personalizado si se elige "Otro"
+        document.querySelectorAll('.select-personal').forEach(select => {
+            select.addEventListener('change', function() {
+                if (this.value === 'OTRO') {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'border rounded px-1 w-full mt-1';
+                    input.placeholder = 'Especifique...';
+                    this.parentNode.appendChild(input);
+                }
             });
         });
 
