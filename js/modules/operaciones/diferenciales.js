@@ -1,4 +1,4 @@
-// ocp Registro de diferenciales de presión
+// ocp Registro de diferenciales de presión con selectores de equipo y punto
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarDiferenciales(contenedor, rol) {
@@ -8,12 +8,26 @@ export async function renderizarDiferenciales(contenedor, rol) {
                 <h3 class="text-lg font-semibold text-white mb-4">Registrar Diferencial de Presión</h3>
                 <form id="form-dp" class="space-y-4">
                     <div>
-                        <label class="block text-slate-400 text-sm">TAG Equipo</label>
-                        <input type="text" id="dp-tag" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white uppercase" required>
+                        <label class="block text-slate-400 text-sm">Equipo</label>
+                        <select id="dp-equipo" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                            <option value="">Seleccione equipo...</option>
+                            <option value="Soplador">Soplador</option>
+                            <option value="Torre de Secado">Torre de Secado</option>
+                            <option value="Torre Intermedia">Torre Intermedia</option>
+                            <option value="Torre Final">Torre Final</option>
+                            <option value="Lecho 1">Lecho 1</option>
+                            <option value="Lecho 2">Lecho 2</option>
+                            <option value="Lecho 3">Lecho 3</option>
+                            <option value="Lecho 4">Lecho 4</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Punto de medición</label>
-                        <input type="text" id="dp-punto" placeholder="Ej: Succión/Descarga, Filtro entrada" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                        <select id="dp-punto" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                            <option value="">Seleccione punto...</option>
+                            <option value="Entrada">Entrada</option>
+                            <option value="Salida">Salida</option>
+                        </select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -44,14 +58,14 @@ export async function renderizarDiferenciales(contenedor, rol) {
 
     document.getElementById('form-dp').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const tag = document.getElementById('dp-tag').value.trim().toUpperCase();
-        const punto = document.getElementById('dp-punto').value.trim();
+        const equipo = document.getElementById('dp-equipo').value;
+        const punto = document.getElementById('dp-punto').value;
         const valor = parseFloat(document.getElementById('dp-valor').value);
         const unidad = document.getElementById('dp-unidad').value;
         const { data: { user } } = await supabase.auth.getUser();
 
         const { error } = await supabase.from('diferenciales_presion').insert([{
-            tag_equipo: tag,
+            tag_equipo: equipo,
             punto_medicion: punto,
             valor: valor,
             unidad: unidad,
@@ -77,8 +91,8 @@ async function cargarListaDP() {
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
             <span class="text-slate-400">${r.fecha_registro}</span>
-            <span class="ml-2 font-bold text-white">${r.tag_equipo}</span>
-            <span class="ml-2 text-blue-400">${r.punto_medicion}: ${r.valor} ${r.unidad}</span>
+            <span class="ml-2 font-bold text-white">${r.tag_equipo} - ${r.punto_medicion}</span>
+            <span class="ml-2 text-blue-400">${r.valor} ${r.unidad}</span>
         </div>
     `).join('');
 }
