@@ -1,4 +1,4 @@
-// ocp Módulo de Bitácora Digital de Turno – con registro de personal (listas desplegables) y acontecimientos
+// ocp Módulo de Bitácora Digital de Turno – con cintillo, personal de turno y acontecimientos
 import { supabase } from '../supabase-client.js';
 
 let entregaActual = null;
@@ -17,13 +17,11 @@ export async function cargarBitacora() {
     // Determinar turno
     const ahora = new Date();
     const hora = ahora.getHours();
-    let fechaInicio, fechaFin, turnoNombre, fechaInicioDate, fechaFinDate;
+    let fechaInicio, fechaFin, turnoNombre;
     if (hora >= 7 && hora < 19) {
         fechaInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 7, 0, 0).toISOString();
         fechaFin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 19, 0, 0).toISOString();
         turnoNombre = 'Diurno (07:00 - 19:00)';
-        fechaInicioDate = fechaInicio.split('T')[0];
-        fechaFinDate = fechaFin.split('T')[0];
     } else {
         const inicioNocturno = hora >= 19 
             ? new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 19, 0, 0)
@@ -31,8 +29,6 @@ export async function cargarBitacora() {
         fechaInicio = inicioNocturno.toISOString();
         fechaFin = new Date(inicioNocturno.getTime() + 12 * 60 * 60 * 1000).toISOString();
         turnoNombre = 'Nocturno (19:00 - 07:00)';
-        fechaInicioDate = fechaInicio.split('T')[0];
-        fechaFinDate = fechaFin.split('T')[0];
     }
 
     // Verificar si ya existe una entrega para este turno
@@ -142,18 +138,17 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // Generar opciones de personal (listas fijas – )
+        // Listas de personal por rol (reemplace los nombres de ejemplo por los reales)
         const personalPorRol = {
-            'Supervisor': ['wladimir PINO', 'Angel BARRUETA', 'Eduardo ARIAS', 'Heiver RAMIREZ'],
-            'Panelista': ['Angel Solorzano', 'Noelvis Camacho', 'Hilnelio Grcia', 'Jesus E. Trias V.'],
-            'Operador 1': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
-            'Operador 2': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
-            'Operador 3': ['CARLOS Rivero', 'Jose Rondón', 'Ramon Guilarte', 'Digrian D. Romero R.', 'Christian Acosta OCP', 'Reymond Garcia', 'Julio Mercado', 'Octavio A. Rodriguez T.', 'Kelvis Salazar', 'Gruber Fernando'],
-            'Paramedico': ['Arturo Tenia', 'Joseanny velasquez', 'L. Lisangel Guevara', 'Libeth Velasquez'],
-            'Inspector SSL': ['Luis Soto', 'Gregoria Rodriguez', 'Leydis O. Botavan', 'Liseth Lereico']
+            'Supervisor': ['Supervisor A', 'Supervisor B', 'Supervisor C', 'Supervisor D'],
+            'Panelista': ['Panelista A', 'Panelista B'],
+            'Operador 1': ['Operador 1A', 'Operador 1B', 'Operador 1C', 'Operador 1D', 'Operador 1E', 'Operador 1F', 'Operador 1G', 'Operador 1H', 'Operador 1I', 'Operador 1J'],
+            'Operador 2': ['Operador 2A', 'Operador 2B', 'Operador 2C', 'Operador 2D', 'Operador 2E', 'Operador 2F', 'Operador 2G', 'Operador 2H', 'Operador 2I', 'Operador 2J'],
+            'Operador 3': ['Operador 3A', 'Operador 3B', 'Operador 3C', 'Operador 3D', 'Operador 3E', 'Operador 3F', 'Operador 3G', 'Operador 3H', 'Operador 3I', 'Operador 3J'],
+            'Paramedico': ['Paramedico A', 'Paramedico B'],
+            'Inspector SSL': ['Inspector SSL A', 'Inspector SSL B']
         };
 
-        // ocp Genera un select con las opciones del rol correspondiente
         const generarSelectPersonal = (rol) => {
             const nombres = personalPorRol[rol] || [];
             const opciones = nombres.map(n => `<option>${n}</option>`).join('');
@@ -175,6 +170,12 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
                     .no-print { display: none; }
                 }
             </style>
+
+            <!-- Cintillo corporativo -->
+            <div style="width: 100%; margin-bottom: 1rem; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.5rem;">
+                <img src="cintillo_superior.png" style="width: 100%; height: auto; display: block;" onerror="this.style.display='none'">
+            </div>
+
             <div class="text-center mb-4 border-b-2 border-gray-300 pb-2">
                 <h1 class="text-2xl font-bold">Entrega de Turno - Planta de Ácido Sulfúrico</h1>
                 <p class="text-lg font-semibold">${fechaBitacora} - Turno: ${turnoNombre}</p>
