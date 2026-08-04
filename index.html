@@ -30,11 +30,22 @@
             border-right-width: 0 !important;
         }
 
+        /* ocp Impresión corregida: oculta solo el sidebar y el botón hamburguesa */
         @media print {
-            body * { visibility: hidden; }
-            #app-content, #app-content * { visibility: visible; }
-            #app-content { position: absolute; left: 0; top: 0; width: 100%; padding: 1cm; overflow: visible; }
-            .no-print { display: none; }
+            #sidebar, #menu-toggle {
+                display: none !important;
+            }
+            #app-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 0.5cm;
+                overflow: visible;
+            }
+            .no-print {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -87,7 +98,6 @@
             <button id="btn-nav-inventario" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
                 <span class="mr-3">📦</span> Inventario y Producción
             </button>
-            <!-- NUEVO: Disposición Final -->
             <button id="btn-nav-disposicion" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
                 <span class="mr-3">♻️</span> Disposición Final
             </button>
