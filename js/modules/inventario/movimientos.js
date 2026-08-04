@@ -1,4 +1,4 @@
-// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido (tanque de origen unificado)
+// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido (con certificación automática)
 import { supabase } from '../../supabase-client.js';
 
 export async function renderizarMovimientos(contenedor) {
@@ -77,16 +77,10 @@ export async function renderizarMovimientos(contenedor) {
                     <option value="TQ-3104">TQ-3104</option>
                 </select>
             </div>
-            <div>
-                <label class="flex items-center text-slate-300">
-                    <input type="checkbox" id="certificado" class="h-4 w-4 text-blue-600 bg-slate-700 border-slate-600 rounded">
-                    <span class="ml-2">Cuenta con certificado de calidad</span>
-                </label>
-                <div id="campos-certificado" class="hidden mt-3 pl-4 border-l-2 border-slate-600 space-y-2">
-                    <div><label class="block text-slate-400 text-sm">Concentración (%)</label><input type="number" step="0.01" id="cert-conc" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white"></div>
-                    <div><label class="block text-slate-400 text-sm">NTU</label><input type="number" step="0.01" id="cert-ntu" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white"></div>
-                    <div><label class="block text-slate-400 text-sm">Fe (ppm)</label><input type="number" step="0.01" id="cert-fe" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white"></div>
-                </div>
+            <!-- ocp Bloque de certificación automática -->
+            <div id="certificacion-auto" class="hidden bg-slate-700 p-3 rounded border border-slate-600 text-sm">
+                <p class="text-slate-300 font-semibold mb-1">Certificación de Calidad (automática)</p>
+                <div id="cert-detalle" class="text-xs text-slate-400 space-y-1"></div>
             </div>`;
             if (tipo === 'despacho_cisterna') {
                 html += `
@@ -106,9 +100,46 @@ export async function renderizarMovimientos(contenedor) {
         }
         camposDinamicos.innerHTML = html;
 
-        document.getElementById('certificado')?.addEventListener('change', function() {
-            document.getElementById('campos-certificado')?.classList.toggle('hidden', !this.checked);
-        });
+        // Evento para buscar certificación al cambiar el tanque
+        const tanqueSelect = document.getElementById('tanque-origen');
+        const certDiv = document.getElementById('certificacion-auto');
+        const certDetalle = document.getElementById('cert-detalle');
+
+        if (tanqueSelect) {
+            tanqueSelect.addEventListener('change', async () => {
+                const tanque = tanqueSelect.value;
+                if (!tanque) {
+                    certDiv.classList.add('hidden');
+                    return;
+                }
+
+                // Buscar la última certificación vigente para ese tanque
+                const { data: certs } = await supabase
+                    .from('certificaciones_acido')
+                    .select('*')
+                    .eq('tanque', tanque)
+                    .gte('fecha_vigencia', new Date().toISOString().split('T')[0])
+                    .order('fecha_analisis', { ascending: false })
+                    .limit(1);
+
+                if (certs && certs.length > 0) {
+                    const c = certs[0];
+                    certDetalle.innerHTML = `
+                        <p>Concentración: <span class="font-bold text-white">${c.concentracion}%</span></p>
+                        <p>NTU: <span class="font-bold text-white">${c.ntu ?? '--'}</span></p>
+                        <p>Fe: <span class="font-bold text-white">${c.ppm_fe ?? '--'} ppm</span></p>
+                        <p>Vence: ${new Date(c.fecha_vigencia).toLocaleDateString('es-VE')}</p>
+                    `;
+                    certDiv.classList.remove('hidden');
+                    // Guardar datos para el payload
+                    window.certificacionActual = c;
+                } else {
+                    certDetalle.innerHTML = '<p class="text-red-400">Sin certificación vigente para este tanque</p>';
+                    certDiv.classList.remove('hidden');
+                    window.certificacionActual = null;
+                }
+            });
+        }
     }
 
     tipoSelect.addEventListener('change', actualizarCampos);
@@ -144,13 +175,13 @@ export async function renderizarMovimientos(contenedor) {
             payload.toneladas_despachadas = parseFloat(document.getElementById('toneladas').value) || null;
             payload.tanque_origen = document.getElementById('tanque-origen')?.value;
             if (!payload.tanque_origen) return alert('Seleccione el tanque de origen.');
-            const certificado = document.getElementById('certificado')?.checked;
-            if (certificado) {
-                const conc = document.getElementById('cert-conc')?.value;
-                const ntu = document.getElementById('cert-ntu')?.value;
-                const fe = document.getElementById('cert-fe')?.value;
-                payload.observaciones = `Cert: Conc=${conc ?? '--'}%, NTU=${ntu ?? '--'}, Fe=${fe ?? '--'} ppm`;
+
+            // Incluir certificación automáticamente si existe
+            if (window.certificacionActual) {
+                const cert = window.certificacionActual;
+                payload.observaciones = `Cert: Conc=${cert.concentracion}%, NTU=${cert.ntu ?? '--'}, Fe=${cert.ppm_fe ?? '--'} ppm, Vence=${cert.fecha_vigencia}`;
             }
+
             if (tipo === 'despacho_cisterna') {
                 payload.area_despacho = document.getElementById('area-despacho')?.value;
                 payload.num_cisternas = parseInt(document.getElementById('num-cisternas')?.value) || null;
