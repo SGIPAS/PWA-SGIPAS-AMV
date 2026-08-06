@@ -1,4 +1,4 @@
-// ocp Módulo Control Operacional – incluye Paradas de Planta (corregido)
+// ocp Módulo Control Operacional – incluye Paradas de Planta
 import { renderizarNovedades } from './novedades.js';
 import { renderizarAcido } from './acido.js';
 import { renderizarPH } from './ph.js';
@@ -6,7 +6,7 @@ import { renderizarConsumo } from './consumo.js';
 import { renderizarEmisiones } from './emisiones.js';
 import { renderizarMotores } from './motores.js';
 import { renderizarDiferenciales } from './diferenciales.js';
-import { cargarParadas } from './paradas.js';   // ocp importación correcta
+import { cargarParadas } from './paradas.js';   // ocp importación correcta (función cargarParadas)
 import { obtenerRolUsuario } from './utils.js';
 
 let currentUserRole = null;
@@ -62,7 +62,7 @@ export async function cargarModuloOperaciones() {
             case 'emisiones':      await renderizarEmisiones(tabContent, currentUserRole); break;
             case 'motores':        await renderizarMotores(tabContent, currentUserRole); break;
             case 'diferenciales':  await renderizarDiferenciales(tabContent, currentUserRole); break;
-            case 'paradas':        await cargarParadas(tabContent, currentUserRole); break;   // ocp función correcta
+            case 'paradas':        await cargarParadas(tabContent, currentUserRole); break;   // ocp usar cargarParadas
         }
     }
 
