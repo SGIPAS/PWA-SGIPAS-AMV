@@ -35,8 +35,9 @@ async function construirSidebar(rol) {
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
+        // paradas:    document.getElementById('btn-nav-paradas'),   <-- ELIMINADO
         inventario:    document.getElementById('btn-nav-inventario'),
-        disposicion:   document.getElementById('btn-nav-disposicion'),   // NUEVO
+        disposicion:   document.getElementById('btn-nav-disposicion'),
         laboratorio:   document.getElementById('btn-nav-laboratorio'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
@@ -48,8 +49,9 @@ async function construirSidebar(rol) {
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
+        // paradas:    ['admin', 'supervisor'].includes(rol),      <-- ELIMINADO
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
-        disposicion:   ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
+        disposicion:   ['admin', 'supervisor', 'operador'].includes(rol),
         laboratorio:   true,
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 5. Conectar botones de navegación (incluido Disposición Final)
+    // 5. Conectar botones de navegación
     const btnDashboard = document.getElementById('btn-nav-dashboard');
     const btnMantenimiento = document.getElementById('btn-nav-mtto');
     const btnUsuarios = document.getElementById('btn-nav-usuarios');
@@ -178,8 +180,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
+    // const btnParadas = document.getElementById('btn-nav-paradas');   <-- ELIMINADO
     const btnInventario = document.getElementById('btn-nav-inventario');
-    const btnDisposicion = document.getElementById('btn-nav-disposicion');   // NUEVO
+    const btnDisposicion = document.getElementById('btn-nav-disposicion');
     const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
@@ -206,16 +209,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
         btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
     }
+    // Bloque de btnParadas ELIMINADO
     if (btnInventario && !btnInventario.classList.contains('hidden')) {
         btnInventario.addEventListener('click', () => import('./modules/inventario/index.js').then(m => m.cargarInventario()));
     }
-    // NUEVO: Disposición Final
     if (btnDisposicion && !btnDisposicion.classList.contains('hidden')) {
-        btnDisposicion.addEventListener('click', () => {
-            import('./modules/disposicion/index.js')
-                .then(m => m.cargarDisposicion())
-                .catch(err => console.error('Error al cargar Disposición:', err));
-        });
+        btnDisposicion.addEventListener('click', () => import('./modules/disposicion/index.js').then(m => m.cargarDisposicion()));
     }
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
         btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
