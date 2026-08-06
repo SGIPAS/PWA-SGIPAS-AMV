@@ -35,7 +35,6 @@ async function construirSidebar(rol) {
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
-        paradas:       document.getElementById('btn-nav-paradas'),
         inventario:    document.getElementById('btn-nav-inventario'),
         disposicion:   document.getElementById('btn-nav-disposicion'),   // NUEVO
         laboratorio:   document.getElementById('btn-nav-laboratorio'),
@@ -49,7 +48,6 @@ async function construirSidebar(rol) {
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
-        paradas:       ['admin', 'supervisor'].includes(rol),
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
         disposicion:   ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
         laboratorio:   true,
@@ -180,7 +178,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
-    const btnParadas = document.getElementById('btn-nav-paradas');
     const btnInventario = document.getElementById('btn-nav-inventario');
     const btnDisposicion = document.getElementById('btn-nav-disposicion');   // NUEVO
     const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
@@ -208,9 +205,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
         btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
-    }
-    if (btnParadas && !btnParadas.classList.contains('hidden')) {
-        btnParadas.addEventListener('click', () => import('./modules/paradas.js').then(m => m.cargarParadas()));
     }
     if (btnInventario && !btnInventario.classList.contains('hidden')) {
         btnInventario.addEventListener('click', () => import('./modules/inventario/index.js').then(m => m.cargarInventario()));
