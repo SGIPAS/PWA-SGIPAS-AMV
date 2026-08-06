@@ -1,13 +1,7 @@
-// ocp Módulo de Paradas de Planta – con registro manual de fechas y horas exactas
-import { supabase } from '../supabase-client.js';
+// ocp Módulo de Paradas de Planta – ahora dentro de operaciones, con importación corregida
+import { supabase } from '../../supabase-client.js'; // ocp ruta corregida (../../)
 
-export async function cargarParadas() {
-    const contenedor = document.getElementById('app-content');
-    if (!contenedor) return;
-
-    // Verificar rol
-    const { data: { user } } = await supabase.auth.getUser();
-    const rol = user?.user_metadata?.rol;
+export async function cargarParadas(contenedor, rol) {
     if (!['admin', 'supervisor'].includes(rol)) {
         contenedor.innerHTML = `<p class="text-red-500 text-center mt-10">Acceso denegado.</p>`;
         return;
@@ -66,7 +60,6 @@ export async function cargarParadas() {
         </div>
     `;
 
-    // Prellenar inicio con fecha actual al abrir el modal
     document.getElementById('btn-nueva-parada').addEventListener('click', () => {
         document.getElementById('parada-inicio').value = new Date().toISOString().slice(0, 16);
         document.getElementById('parada-fin').value = '';
