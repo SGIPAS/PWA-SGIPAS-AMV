@@ -1,4 +1,4 @@
-// ocp Módulo Control Operacional – sin Inventario ni Fundición
+// ocp Módulo Control Operacional – ahora incluye Paradas de Planta
 import { renderizarNovedades } from './novedades.js';
 import { renderizarAcido } from './acido.js';
 import { renderizarPH } from './ph.js';
@@ -6,6 +6,7 @@ import { renderizarConsumo } from './consumo.js';
 import { renderizarEmisiones } from './emisiones.js';
 import { renderizarMotores } from './motores.js';
 import { renderizarDiferenciales } from './diferenciales.js';
+import { renderizarParadas } from './paradas.js';   // <-- Nueva importación
 import { obtenerRolUsuario } from './utils.js';
 
 let currentUserRole = null;
@@ -31,6 +32,8 @@ export async function cargarModuloOperaciones() {
                 <button data-tab="emisiones" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🌫️ Emisiones SO₂</button>
                 <button data-tab="motores" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🌡️ Motores</button>
                 <button data-tab="diferenciales" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📏 Diferenciales P.</button>
+                <!-- NUEVA PESTAÑA: Paradas de Planta -->
+                <button data-tab="paradas" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🛑 Paradas</button>
             </nav>
         </div>
 
@@ -59,6 +62,7 @@ export async function cargarModuloOperaciones() {
             case 'emisiones':      await renderizarEmisiones(tabContent, currentUserRole); break;
             case 'motores':        await renderizarMotores(tabContent, currentUserRole); break;
             case 'diferenciales':  await renderizarDiferenciales(tabContent, currentUserRole); break;
+            case 'paradas':        await renderizarParadas(tabContent, currentUserRole); break; // <-- Nuevo caso
         }
     }
 
