@@ -1,7 +1,7 @@
 // ocp Módulo principal de Biblioteca Documental – orquesta la carga del módulo
 import { renderizarUI } from './ui.js';
 import { obtenerRolUsuario } from './utils.js';
-import { cargarListaDocumentos } from './operaciones.js';
+import { cargarDocumentosPorCategoria } from './operaciones.js';  // ocp función correcta
 
 let currentUserRole = null;
 
@@ -12,9 +12,9 @@ export async function cargarModuloBiblioteca() {
     // ocp Obtener rol del usuario para control de permisos
     currentUserRole = await obtenerRolUsuario();
 
-    // ocp Renderizar la interfaz completa y conectar eventos
+    // ocp Renderizar la interfaz completa (ahora incluye el árbol y la barra de búsqueda)
     await renderizarUI(currentUserRole);
 
-    // ocp Carga inicial de la lista de documentos
-    await cargarListaDocumentos(currentUserRole);
+    // ocp Carga inicial: todos los documentos (sin filtro)
+    await cargarDocumentosPorCategoria(null, null, currentUserRole);
 }
