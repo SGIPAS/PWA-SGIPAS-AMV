@@ -1,4 +1,4 @@
-// ocp Service Worker – network-first para archivos dinámicos, actualización inmediata
+// ocp Service Worker – network-first, actualización inmediata, no cachea videos pesados
 const CACHE_NAME = 'sgi-pas-v5';
 
 const urlsToCache = [
@@ -26,8 +26,10 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Solo procesar GET
   if (event.request.method !== 'GET') return;
+
+  // No interceptar videos para no saturar la caché
+  if (event.request.url.match(/\.(mp4|webm|mov)$/i)) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).catch(() => caches.match('/index.html')));
