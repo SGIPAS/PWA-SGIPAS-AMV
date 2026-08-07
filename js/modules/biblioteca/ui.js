@@ -1,4 +1,4 @@
-// ocp UI de Biblioteca – genera el HTML y asigna eventos
+// ocp UI de Biblioteca – genera el HTML y asigna eventos (versión con video)
 import { abrirModalNuevo, cerrarModal, manejarSubmitDocumento } from './operaciones.js';
 import { cargarListaDocumentos } from './operaciones.js';
 import { debounce } from './utils.js';
@@ -7,12 +7,11 @@ export async function renderizarUI(rol) {
     const contenedor = document.getElementById('app-content');
     const esAdmin = rol === 'admin';
 
-    // ocp HTML base del módulo (listado, filtros, modal condicional)
     contenedor.innerHTML = `
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h1 class="text-3xl font-bold text-slate-100">Biblioteca Documental</h1>
-                <p class="text-slate-400 mt-1">Documentos normativos, procedimientos y formularios del SGIPAS.</p>
+                <p class="text-slate-400 mt-1">Documentos normativos, procedimientos, formularios y videos del SGIPAS.</p>
             </div>
             ${esAdmin ? `
             <button id="btn-nuevo-documento" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150 shadow-lg flex items-center">
@@ -37,6 +36,7 @@ export async function renderizarUI(rol) {
                     <option value="formulario">Formulario</option>
                     <option value="registro">Registro</option>
                     <option value="practica">Práctica Operativa</option>
+                    <option value="video">Video</option>
                     <option value="otro">Otro</option>
                 </select>
                 <button id="btn-limpiar-filtros" class="bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded transition">Limpiar</button>
@@ -79,13 +79,14 @@ export async function renderizarUI(rol) {
                                 <option value="formulario">Formulario</option>
                                 <option value="registro">Registro</option>
                                 <option value="practica">Práctica Operativa</option>
+                                <option value="video">Video</option>
                                 <option value="otro">Otro</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-slate-400 text-sm mb-1">Archivo (PDF)</label>
-                        <input type="file" id="doc-archivo" accept=".pdf" class="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                        <label class="block text-slate-400 text-sm mb-1">Archivo</label>
+                        <input type="file" id="doc-archivo" accept=".pdf,.mp4,.webm,.mov" class="w-full text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
                         <p id="archivo-actual" class="text-xs text-slate-500 mt-1 hidden"></p>
                     </div>
                     <div id="doc-cambios-group" class="hidden">
@@ -101,7 +102,6 @@ export async function renderizarUI(rol) {
         </div>` : ''}
     `;
 
-    // ocp Conectar eventos de la UI
     if (esAdmin) {
         document.getElementById('btn-nuevo-documento')?.addEventListener('click', () => abrirModalNuevo());
         document.getElementById('btn-cerrar-modal')?.addEventListener('click', cerrarModal);
