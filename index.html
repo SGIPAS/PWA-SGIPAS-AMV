@@ -36,15 +36,12 @@
                 overflow: visible;
             }
             #app-content > * { display: none !important; }
-            #app-content > [id$="-print"] {
-                display: block !important;
-            }
+            #app-content > [id$="-print"] { display: block !important; }
             .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 h-screen flex overflow-hidden font-sans">
-
     <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 rounded-md bg-slate-700 text-white shadow-lg">☰</button>
 
     <aside id="sidebar" class="w-64 bg-[#1e293b] border-r border-slate-700 flex flex-col z-40 shadow-2xl fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out sidebar-closed md:sidebar-closed">
@@ -105,13 +102,10 @@
     </aside>
 
     <main class="flex-1 flex flex-col bg-[#0f172a] relative overflow-hidden transition-all duration-300 ease-in-out">
-        <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8">
-            <!-- Contenido dinámico -->
-        </div>
+        <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8"></div>
     </main>
 
     <script type="module" src="js/main.js"></script>
-
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
