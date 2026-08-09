@@ -1,4 +1,4 @@
-// ocp Tablero principal con KPIs y listado rápido
+// ocp Tablero principal con KPIs y listado rápido (corregido)
 import { supabase } from '../../supabase-client.js';
 import { irAListado, irACrear, irADetalle } from './index.js';
 import { badgeEstado, formatearFecha } from './utils.js';
@@ -63,7 +63,6 @@ async function cargarKPIs() {
     const desde = new Date(Date.now() - 30*24*60*60*1000).toISOString();
     const { count: cerradas } = await supabase.from('ordenes_trabajo').select('*', { count: 'exact', head: true }).eq('estado', 'cerrada').gte('fecha_cierre', desde);
 
-    // Calcular tiempo medio de respuesta (pendiente -> en_ejecucion) en horas
     const { data: ots } = await supabase.from('ordenes_trabajo')
         .select('fecha_solicitud, fecha_inicio_real')
         .not('fecha_inicio_real', 'is', null)
@@ -119,7 +118,6 @@ async function cargarRecientes(rol) {
     html += '</tbody></table>';
     container.innerHTML = html;
 
-    // Evento para ir al detalle
     container.querySelectorAll('tr[data-id]').forEach(row => {
         row.addEventListener('click', () => irADetalle(row.dataset.id));
     });
