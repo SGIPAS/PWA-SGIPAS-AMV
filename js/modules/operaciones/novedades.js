@@ -1,6 +1,5 @@
-// ocp Submódulo de Reporte de Novedades
+// ocp Submódulo de Reporte de Novedades – solo crea OT si se marca la casilla
 import { supabase } from '../../supabase-client.js';
-import { notificarARoles } from '../../notificaciones.js';   // ocp función para enviar alertas
 
 export async function renderizarNovedades(contenedor, rol) {
     contenedor.innerHTML = `
@@ -29,14 +28,12 @@ export async function renderizarNovedades(contenedor, rol) {
                             </label>
                         </div>
                         <img id="preview-foto" class="mt-2 max-h-32 rounded hidden">
-                        <!-- Indicador de carga -->
-                        <p id="upload-status" class="text-xs text-slate-500 mt-1 hidden">Subiendo imagen...</p>
                     </div>
                     <div class="flex items-center space-x-2">
                         <input type="checkbox" id="genera-ot" class="h-4 w-4 text-blue-600 bg-slate-700 border-slate-600 rounded">
                         <label class="text-slate-400 text-sm">Generar Orden de Trabajo automática</label>
                     </div>
-                    <button type="submit" id="btn-submit-novedad" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Registrar Novedad</button>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Registrar Novedad</button>
                 </form>
             </div>
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -48,11 +45,9 @@ export async function renderizarNovedades(contenedor, rol) {
         </div>
     `;
 
-    // ocp Previsualización de imagen
     const fileInput = document.getElementById('foto-file');
     const cameraInput = document.getElementById('foto-camera');
     const preview = document.getElementById('preview-foto');
-    const uploadStatus = document.getElementById('upload-status');
 
     function mostrarPreview(file) {
         const reader = new FileReader();
@@ -63,13 +58,8 @@ export async function renderizarNovedades(contenedor, rol) {
     fileInput.addEventListener('change', () => { if (fileInput.files[0]) mostrarPreview(fileInput.files[0]); });
     cameraInput.addEventListener('change', () => { if (cameraInput.files[0]) mostrarPreview(cameraInput.files[0]); });
 
-    // ocp Envío del formulario
     document.getElementById('form-novedad').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btnSubmit = document.getElementById('btn-submit-novedad');
-        btnSubmit.disabled = true;
-        btnSubmit.textContent = 'Procesando...';
-
         const tag = document.getElementById('novedad-tag').value.trim();
         const desc = document.getElementById('novedad-desc').value.trim();
         const generarOT = document.getElementById('genera-ot').checked;
@@ -77,35 +67,10 @@ export async function renderizarNovedades(contenedor, rol) {
         let foto_url = null;
         const archivo = fileInput.files[0] || cameraInput.files[0];
         if (archivo) {
-            uploadStatus.classList.remove('hidden');
-            uploadStatus.textContent = 'Subiendo imagen...';
             const fileName = `novedades/${Date.now()}_${archivo.name}`;
-            try {
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('biblioteca')
-                    .upload(fileName, archivo, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
-
-                if (uploadError) {
-                    console.error('Detalle del error de subida:', uploadError);
-                    uploadStatus.textContent = 'Error al subir imagen.';
-                    alert('Error al subir imagen: ' + uploadError.message);
-                    btnSubmit.disabled = false;
-                    btnSubmit.textContent = 'Registrar Novedad';
-                    return;
-                }
-                foto_url = uploadData?.path || fileName;
-                uploadStatus.textContent = 'Imagen subida.';
-            } catch (err) {
-                console.error('Excepción en subida:', err);
-                uploadStatus.textContent = 'Error inesperado.';
-                alert('Error inesperado al subir imagen.');
-                btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Registrar Novedad';
-                return;
-            }
+            const { error: uploadError } = await supabase.storage.from('biblioteca').upload(fileName, archivo);
+            if (uploadError) return alert('Error al subir imagen: ' + uploadError.message);
+            foto_url = fileName;
         }
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -117,15 +82,9 @@ export async function renderizarNovedades(contenedor, rol) {
             genera_ot: generarOT
         };
 
-        const { data: novedad, error } = await supabase.from('novedades').insert([payload]).select().single();
-        if (error) {
-            alert('Error al guardar novedad: ' + error.message);
-            btnSubmit.disabled = false;
-            btnSubmit.textContent = 'Registrar Novedad';
-            return;
-        }
+        const { error } = await supabase.from('novedades').insert([payload]);
+        if (error) return alert('Error al guardar novedad: ' + error.message);
 
-        // ocp Notificaciones y creación de OT automática
         if (generarOT) {
             const { data: lastOT } = await supabase.from('ordenes_trabajo').select('numero_ot').order('created_at', { ascending: false }).limit(1);
             let nextNum = 1;
@@ -144,7 +103,7 @@ export async function renderizarNovedades(contenedor, rol) {
                 estado: 'pendiente',
                 solicitante_id: user.id,
                 creado_por: user.id,
-                requiere_pts: false,
+                requiere_pts: true,
                 aplica_loto: false
             }]);
 
@@ -152,23 +111,13 @@ export async function renderizarNovedades(contenedor, rol) {
                 alert('Novedad guardada, pero error al crear OT: ' + otError.message);
             } else {
                 alert(`Novedad registrada y OT ${numero_ot} creada.`);
-                await notificarARoles(['supervisor', 'admin', 'operador'],
-                    `Nueva novedad en ${tag}. Se generó OT ${numero_ot}.`);
-                await notificarARoles(['inspector_ssl', 'ejecutor'],
-                    `Nueva OT ${numero_ot} generada por novedad en ${tag}.`);
             }
         } else {
             alert('Novedad registrada.');
-            await notificarARoles(['supervisor', 'admin', 'operador'],
-                `Nueva novedad reportada en ${tag}. No se generó OT.`);
         }
 
-        // Limpiar formulario
         document.getElementById('form-novedad').reset();
         preview.classList.add('hidden');
-        uploadStatus.classList.add('hidden');
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Registrar Novedad';
         cargarListaNovedades();
     });
 
