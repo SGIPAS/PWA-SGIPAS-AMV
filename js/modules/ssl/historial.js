@@ -9,23 +9,41 @@ export async function renderizarHistorialPTS(contenedor, rol) {
         </div>
     `;
 
-    // Obtener PTS con el nombre del autor usando JOIN
-    const { data, error } = await supabase
+    // 1. Obtener los PTS
+    const { data: ptsData, error: ptsError } = await supabase
         .from('permisos_ssl')
-        .select('*, ordenes_trabajo(numero_ot, titulo), perfiles!permisos_ssl_autorizado_por_fkey(nombre_completo)')
+        .select('*, ordenes_trabajo(numero_ot, titulo)')
         .order('created_at', { ascending: false })
         .limit(20);
 
-    const container = document.getElementById('tabla-historial-pts');
-    if (error) {
-        container.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
-        return;
-    }
-    if (!data.length) {
-        container.innerHTML = '<p class="text-slate-400">No se han emitido PTS.</p>';
+    if (ptsError) {
+        document.getElementById('tabla-historial-pts').innerHTML = `<p class="text-red-500">Error: ${ptsError.message}</p>`;
         return;
     }
 
+    if (!ptsData || ptsData.length === 0) {
+        document.getElementById('tabla-historial-pts').innerHTML = '<p class="text-slate-400">No se han emitido PTS.</p>';
+        return;
+    }
+
+    // 2. Obtener los UUIDs únicos de los emisores
+    const emisorIds = [...new Set(ptsData.map(p => p.autorizado_por))];
+
+    // 3. Consultar los nombres desde perfiles
+    const { data: perfilesData } = await supabase
+        .from('perfiles')
+        .select('id, nombre_completo')
+        .in('id', emisorIds);
+
+    // 4. Crear un mapa de id -> nombre para acceso rápido
+    const mapaNombres = {};
+    if (perfilesData) {
+        perfilesData.forEach(p => {
+            mapaNombres[p.id] = p.nombre_completo || 'Sin nombre';
+        });
+    }
+
+    // 5. Construir la tabla
     let html = `
         <table class="w-full text-left border-collapse text-sm">
             <thead class="bg-slate-800 text-slate-400 uppercase">
@@ -40,7 +58,7 @@ export async function renderizarHistorialPTS(contenedor, rol) {
             <tbody class="divide-y divide-slate-700 text-slate-300">
     `;
 
-    data.forEach(p => {
+    ptsData.forEach(p => {
         const riesgos = [];
         if (p.check_loto) riesgos.push('LOTO');
         if (p.check_valvulas) riesgos.push('Válvulas');
@@ -50,7 +68,7 @@ export async function renderizarHistorialPTS(contenedor, rol) {
         if (p.check_bypass_control) riesgos.push('Bypass');
         const numOT = p.ordenes_trabajo?.numero_ot || p.orden_id;
         const titOT = p.ordenes_trabajo?.titulo || '';
-        const nombreEmisor = p.perfiles?.nombre_completo || 'Usuario ' + (p.autorizado_por?.substring(0,8) || 'desconocido');
+        const nombreEmisor = mapaNombres[p.autorizado_por] || p.autorizado_por?.substring(0, 8) || 'Desconocido';
 
         html += `
             <tr class="hover:bg-slate-700/50">
@@ -64,5 +82,5 @@ export async function renderizarHistorialPTS(contenedor, rol) {
     });
 
     html += '</tbody></table>';
-    container.innerHTML = html;
+    document.getElementById('tabla-historial-pts').innerHTML = html;
 }
