@@ -1,4 +1,4 @@
-// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral expansivo
+// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral (sin notificaciones)
 import { supabase } from './supabase-client.js';
 import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
@@ -9,21 +9,6 @@ import { iniciarPresencia, detenerPresencia } from './modules/presencia.js';
 async function obtenerRol() {
     const { data: { user } } = await supabase.auth.getUser();
     return user?.user_metadata?.rol || 'operador';
-}
-
-// ocp Actualizar badge de notificaciones
-async function actualizarBadgeNotificaciones() {
-    const badge = document.getElementById('badge-notificaciones');
-    if (!badge) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { count } = await supabase
-        .from('notificaciones')
-        .select('*', { count: 'exact', head: true })
-        .eq('usuario_id', user.id)
-        .eq('leida', false);
-    badge.textContent = count ?? 0;
-    badge.classList.toggle('hidden', count === 0);
 }
 
 // ocp Mostrar u ocultar botones del sidebar según el rol
@@ -38,7 +23,7 @@ async function construirSidebar(rol) {
         inventario:    document.getElementById('btn-nav-inventario'),
         disposicion:   document.getElementById('btn-nav-disposicion'),
         laboratorio:   document.getElementById('btn-nav-laboratorio'),
-        rutinas:       document.getElementById('btn-nav-rutinas'),   // NUEVO
+        rutinas:       document.getElementById('btn-nav-rutinas'),
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -51,8 +36,8 @@ async function construirSidebar(rol) {
         reportes:      ['admin', 'supervisor'].includes(rol),
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
         disposicion:   ['admin', 'supervisor', 'operador'].includes(rol),
-        laboratorio:   true,
-        rutinas:       ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
+        laboratorio:   ['admin', 'analista', 'supervisor', 'operador', 'inspector_ssl'].includes(rol),
+        rutinas:       ['admin', 'supervisor', 'operador'].includes(rol),
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -137,20 +122,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await construirSidebar(rol);
     mostrarInfoUsuario();
 
-    // 4. Agregar notificaciones, cerrar sesión y presencia en el footer del sidebar
+    // 4. Footer del sidebar: solo cerrar sesión y presencia (sin notificaciones)
     if (footerEl) {
-        const badgeHTML = `
-            <button id="btn-notificaciones" class="w-full flex items-center justify-between p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600">
-                <span class="flex items-center"><span class="mr-3">🔔</span> Notificaciones</span>
-                <span id="badge-notificaciones" class="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 hidden">0</span>
-            </button>`;
-
         const logoutBtn = document.createElement('button');
-        logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600';
+        logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600 mt-4';
         logoutBtn.innerHTML = '<span class="mr-3">🚪</span> Cerrar Sesión';
         logoutBtn.addEventListener('click', cerrarSesion);
-
-        footerEl.innerHTML = badgeHTML;
         footerEl.appendChild(logoutBtn);
 
         if (rol === 'admin') {
@@ -163,12 +140,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             presenciaDiv.innerHTML = presenciaHTML;
             footerEl.appendChild(presenciaDiv.firstElementChild);
         }
-
-        document.getElementById('btn-notificaciones')?.addEventListener('click', () => {
-            import('./notificaciones.js')
-                .then(m => m.mostrarNotificaciones())
-                .catch(err => console.error('Error al cargar notificaciones:', err));
-        });
     }
 
     // 5. Conectar botones de navegación
@@ -183,7 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnInventario = document.getElementById('btn-nav-inventario');
     const btnDisposicion = document.getElementById('btn-nav-disposicion');
     const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
-    const btnRutinas = document.getElementById('btn-nav-rutinas');   // NUEVO
+    const btnRutinas = document.getElementById('btn-nav-rutinas');
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
         btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard()));
@@ -218,7 +189,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
         btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
     }
-    // NUEVO: Rutinas Diarias
     if (btnRutinas && !btnRutinas.classList.contains('hidden')) {
         btnRutinas.addEventListener('click', () => import('./modules/rutinas.js').then(m => m.cargarRutinas()));
     }
@@ -245,8 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Actualizar badge y cargar módulo inicial
-    await actualizarBadgeNotificaciones();
+    // 8. Cargar módulo inicial (Panel de Indicadores)
     import('./modules/dashboard/index.js').then(m => m.cargarDashboard()).catch(err => {
         console.error(err);
         document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
