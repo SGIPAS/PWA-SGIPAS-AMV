@@ -35,10 +35,10 @@ async function construirSidebar(rol) {
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
         reportes:      document.getElementById('btn-nav-reportes'),
-        // paradas:    document.getElementById('btn-nav-paradas'),   <-- ELIMINADO
         inventario:    document.getElementById('btn-nav-inventario'),
         disposicion:   document.getElementById('btn-nav-disposicion'),
         laboratorio:   document.getElementById('btn-nav-laboratorio'),
+        rutinas:       document.getElementById('btn-nav-rutinas'),   // NUEVO
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
@@ -49,10 +49,10 @@ async function construirSidebar(rol) {
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor'].includes(rol),
-        // paradas:    ['admin', 'supervisor'].includes(rol),      <-- ELIMINADO
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
         disposicion:   ['admin', 'supervisor', 'operador'].includes(rol),
         laboratorio:   true,
+        rutinas:       ['admin', 'supervisor', 'operador'].includes(rol), // NUEVO
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
     };
@@ -180,10 +180,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSSL = document.getElementById('btn-nav-ssl');
     const btnBitacora = document.getElementById('btn-nav-bitacora');
     const btnReportes = document.getElementById('btn-nav-reportes');
-    // const btnParadas = document.getElementById('btn-nav-paradas');   <-- ELIMINADO
     const btnInventario = document.getElementById('btn-nav-inventario');
     const btnDisposicion = document.getElementById('btn-nav-disposicion');
     const btnLaboratorio = document.getElementById('btn-nav-laboratorio');
+    const btnRutinas = document.getElementById('btn-nav-rutinas');   // NUEVO
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
         btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard()));
@@ -209,7 +209,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
         btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
     }
-    // Bloque de btnParadas ELIMINADO
     if (btnInventario && !btnInventario.classList.contains('hidden')) {
         btnInventario.addEventListener('click', () => import('./modules/inventario/index.js').then(m => m.cargarInventario()));
     }
@@ -218,6 +217,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
         btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
+    }
+    // NUEVO: Rutinas Diarias
+    if (btnRutinas && !btnRutinas.classList.contains('hidden')) {
+        btnRutinas.addEventListener('click', () => import('./modules/rutinas.js').then(m => m.cargarRutinas()));
     }
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
