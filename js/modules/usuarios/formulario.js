@@ -1,4 +1,4 @@
-// ocp Manejo del modal de creación/edición de usuario
+// ocp Manejo del modal de creación/edición de usuario (versión con laboratorio y analista)
 import { supabase } from '../../supabase-client.js';
 import { renderizarLista } from './lista.js';
 
@@ -28,6 +28,7 @@ export function abrirModalNuevo() {
                             <option value="fabricacion y soldadura">Fab. y Soldadura</option>
                             <option value="servicios generales">Servicios Generales</option>
                             <option value="foraneos">Foráneos</option>
+                            <option value="laboratorio">Laboratorio</option>
                             <option value="superintendencia de acido">Superintendencia de Ácido</option>
                             <option value="SSL">SSL</option>
                         </select>
@@ -39,6 +40,7 @@ export function abrirModalNuevo() {
                             <option value="supervisor">Supervisor</option>
                             <option value="ejecutor">Ejecutor</option>
                             <option value="inspector_ssl">Inspector SSL</option>
+                            <option value="analista">Analista</option>
                             <option value="admin">Administrador</option>
                         </select>
                     </div>
@@ -91,6 +93,7 @@ export async function abrirModalEditar(id) {
                             <option value="fabricacion y soldadura" ${perfil.departamento === 'fabricacion y soldadura' ? 'selected' : ''}>Fab. y Soldadura</option>
                             <option value="servicios generales" ${perfil.departamento === 'servicios generales' ? 'selected' : ''}>Servicios Generales</option>
                             <option value="foraneos" ${perfil.departamento === 'foraneos' ? 'selected' : ''}>Foráneos</option>
+                            <option value="laboratorio" ${perfil.departamento === 'laboratorio' ? 'selected' : ''}>Laboratorio</option>
                             <option value="superintendencia de acido" ${perfil.departamento === 'superintendencia de acido' ? 'selected' : ''}>Superintendencia de Ácido</option>
                             <option value="SSL" ${perfil.departamento === 'SSL' ? 'selected' : ''}>SSL</option>
                         </select>
@@ -102,6 +105,7 @@ export async function abrirModalEditar(id) {
                             <option value="supervisor" ${perfil.rol === 'supervisor' ? 'selected' : ''}>Supervisor</option>
                             <option value="ejecutor" ${perfil.rol === 'ejecutor' ? 'selected' : ''}>Ejecutor</option>
                             <option value="inspector_ssl" ${perfil.rol === 'inspector_ssl' ? 'selected' : ''}>Inspector SSL</option>
+                            <option value="analista" ${perfil.rol === 'analista' ? 'selected' : ''}>Analista</option>
                             <option value="admin" ${perfil.rol === 'admin' ? 'selected' : ''}>Administrador</option>
                         </select>
                     </div>
@@ -163,13 +167,12 @@ export async function manejarSubmitUsuario(e) {
             });
 
             if (signUpError) {
-                // Extraer el mensaje más descriptivo posible
                 let msg = signUpError.message || signUpError.error_description || JSON.stringify(signUpError);
                 console.error('Error signUp completo:', signUpError);
                 throw new Error(msg);
             }
 
-            // Respaldo: insertar perfil manualmente (por si el trigger no funciona)
+            // Insertar perfil manualmente (respaldo)
             const { error: perfilError } = await supabase.from('perfiles').upsert({
                 id: authData.user.id,
                 nombre_completo: nombre,
