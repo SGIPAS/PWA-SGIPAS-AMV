@@ -1,4 +1,4 @@
-// ocp Manejo del modal de creación/edición de usuario (versión con laboratorio y analista)
+// ocp Manejo del modal de creación/edición de usuario (versión corregida y robusta)
 import { supabase } from '../../supabase-client.js';
 import { renderizarLista } from './lista.js';
 
@@ -59,7 +59,6 @@ export function abrirModalNuevo() {
                 </div>
             </form>
         </div>`;
-
     document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal);
     document.getElementById('form-usuario').addEventListener('submit', manejarSubmitUsuario);
 }
@@ -120,7 +119,6 @@ export async function abrirModalEditar(id) {
                 </div>
             </form>
         </div>`;
-
     document.getElementById('btn-cerrar-modal').addEventListener('click', cerrarModal);
     document.getElementById('form-usuario').addEventListener('submit', manejarSubmitUsuario);
 }
@@ -172,7 +170,7 @@ export async function manejarSubmitUsuario(e) {
                 throw new Error(msg);
             }
 
-            // Insertar perfil manualmente (respaldo)
+            // Insertar perfil manualmente (el trigger también lo hará, pero esto es respaldo)
             const { error: perfilError } = await supabase.from('perfiles').upsert({
                 id: authData.user.id,
                 nombre_completo: nombre,
