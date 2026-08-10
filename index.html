@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SGI Planta de Ácido - SGIPAS</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Adaptador de fechas para Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- SheetJS (exportar Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <link rel="manifest" href="/manifest.json">
@@ -42,8 +47,10 @@
     </style>
 </head>
 <body class="bg-slate-900 text-slate-200 h-screen flex overflow-hidden font-sans">
+
     <button id="menu-toggle" class="fixed top-4 left-4 z-50 p-2 rounded-md bg-slate-700 text-white shadow-lg">☰</button>
 
+    <!-- BARRA LATERAL -->
     <aside id="sidebar" class="w-64 bg-[#1e293b] border-r border-slate-700 flex flex-col z-40 shadow-2xl fixed md:relative inset-y-0 left-0 transform transition-transform duration-300 ease-in-out sidebar-closed md:sidebar-closed">
         <div class="border-b border-slate-700 h-20 flex items-center justify-center">
             <img src="logo.png" alt="Logo AMV" class="h-full w-full object-contain" onerror="this.style.display='none'">
@@ -102,16 +109,35 @@
     </aside>
 
     <main class="flex-1 flex flex-col bg-[#0f172a] relative overflow-hidden transition-all duration-300 ease-in-out">
-        <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8"></div>
+        <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8">
+            <!-- Contenido dinámico -->
+        </div>
     </main>
 
     <script type="module" src="js/main.js"></script>
+
+    <!-- Registro del Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
           .then(reg => console.log('SW registrado:', reg.scope))
           .catch(err => console.log('SW falló:', err));
       }
+    </script>
+
+    <!-- OneSignal -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "b624c272-9ab6-44fe-af9d-1e5ff7128fca",
+          safari_web_id: "web.onesignal.auto.6974e7ad-baef-42fd-b71d-7f7df083312f",
+          notifyButton: {
+            enable: true,
+          },
+        });
+      });
     </script>
 </body>
 </html>
