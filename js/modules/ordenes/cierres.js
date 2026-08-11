@@ -56,7 +56,7 @@ export async function cargarVistaCierres(otId, rol, contenedor) {
 
             alert('OT cerrada exitosamente.');
             await enviarPushARoles(['ejecutor', 'inspector_ssl'],
-                `🎯 OT ${ot.numero_ot} cerrada por operaciones`);
+                `🎯 OT ${ot.numero_ot} cerrada bajo conformidad`);
             const { irATablero } = await import('./index.js');
             irATablero();
         });
