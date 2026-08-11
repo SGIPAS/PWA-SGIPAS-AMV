@@ -1,5 +1,6 @@
-// ocp Submódulo de Reporte de Novedades
+// ocp Submódulo de Reporte de Novedades – con notificación push
 import { supabase } from '../../supabase-client.js';
+import { enviarPushARoles } from '../../push.js';
 
 export async function renderizarNovedades(contenedor, rol) {
     contenedor.innerHTML = `
@@ -111,6 +112,9 @@ export async function renderizarNovedades(contenedor, rol) {
                 alert('Novedad guardada, pero error al crear OT: ' + otError.message);
             } else {
                 alert(`Novedad registrada y OT ${numero_ot} creada.`);
+                // Notificar a supervisores, admin, inspector y ejecutor
+                await enviarPushARoles(['admin', 'supervisor', 'inspector_ssl', 'ejecutor'],
+                    `🔧 Nueva OT ${numero_ot} creada: ${tag}`);
             }
         } else {
             alert('Novedad registrada.');
