@@ -154,7 +154,7 @@ async function renderizarCertAzufre(contenedor) {
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Acidez (%)</label>
-                        <input type="number" step="0.01" id="cert-acidez" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                        <input type="number" step="0.0001" id="cert-acidez" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Impurezas</label>
