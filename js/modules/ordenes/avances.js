@@ -1,7 +1,7 @@
 // ocp Submódulo de avances y revalidaciones de OT
 import { supabase } from '../../supabase-client.js';
 import { formatearFecha } from './utils.js';
-import { notificarARoles } from '../../notificaciones.js'; // ocp para alertas
+import { enviarPush } from '../../push.js';
 
 export async function cargarVistaAvances(otId, rol, contenedor) {
     const { data: ot } = await supabase.from('ordenes_trabajo').select('estado, requiere_pts, numero_ot').eq('id', otId).single();
@@ -81,7 +81,6 @@ export async function cargarVistaAvances(otId, rol, contenedor) {
             const { error } = await supabase.from('avances_ot').insert([avance]);
             if (error) return alert('Error: ' + error.message);
 
-            // ocp Si la OT estaba en 'aprobada_seguridad', iniciar ejecución automáticamente
             const { data: otActual } = await supabase.from('ordenes_trabajo').select('estado').eq('id', otId).single();
             if (otActual?.estado === 'aprobada_seguridad') {
                 await supabase.from('ordenes_trabajo').update({
@@ -109,11 +108,8 @@ export async function cargarVistaAvances(otId, rol, contenedor) {
                 fecha_fin_real: new Date().toISOString()
             }).eq('id', otId);
 
-            // ocp Notificar a operaciones y ssl
-            await notificarARoles(['admin', 'supervisor', 'operador', 'inspector_ssl'],
-                `El ejecutor finalizó el trabajo en OT ${ot.numero_ot}. Pendiente de auditoría.`);
-
             alert('Estado actualizado a "Finalizada por ejecutor". Planta debe auditar.');
+            await enviarPush(`✅ Ejecutor finalizó trabajo en OT ${ot.numero_ot}`);
             const { mostrarDetalle } = await import('./detalle.js');
             mostrarDetalle(otId, rol);
         });
