@@ -1,4 +1,4 @@
-// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral (sin notificaciones)
+// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral, OneSignal
 import { supabase } from './supabase-client.js';
 import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await construirSidebar(rol);
     mostrarInfoUsuario();
 
-    // 4. Footer del sidebar: solo cerrar sesión y presencia (sin notificaciones)
+    // 4. Footer del sidebar: solo cerrar sesión y presencia
     if (footerEl) {
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600 mt-4';
@@ -215,12 +215,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Cargar módulo inicial (Panel de Indicadores)
+    // 8. Obtener y guardar el playerId de OneSignal
+    try {
+        if (typeof OneSignal !== 'undefined') {
+            OneSignal.getUserId().then(playerId => {
+                if (playerId && user) {
+                    localStorage.setItem('playerId', playerId);
+                    console.log('Player ID guardado:', playerId);
+                }
+            }).catch(err => console.log('OneSignal no disponible aún:', err));
+        }
+    } catch (e) {
+        console.log('OneSignal no cargado');
+    }
+
+    // 9. Cargar módulo inicial (Panel de Indicadores)
     import('./modules/dashboard/index.js').then(m => m.cargarDashboard()).catch(err => {
         console.error(err);
         document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
     });
 
-    // 9. Limpiar presencia al salir
+    // 10. Limpiar presencia al salir
     window.addEventListener('beforeunload', () => detenerPresencia());
 });
