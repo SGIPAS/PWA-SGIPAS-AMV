@@ -1,5 +1,6 @@
-// ocp Submódulo de Reporte de Novedades – solo crea OT si se marca la casilla
+// ocp Submódulo de Reporte de Novedades – con notificaciones push
 import { supabase } from '../../supabase-client.js';
+import { enviarPush } from '../../push.js';
 
 export async function renderizarNovedades(contenedor, rol) {
     contenedor.innerHTML = `
@@ -103,7 +104,7 @@ export async function renderizarNovedades(contenedor, rol) {
                 estado: 'pendiente',
                 solicitante_id: user.id,
                 creado_por: user.id,
-                requiere_pts: true,
+                requiere_pts: false,
                 aplica_loto: false
             }]);
 
@@ -111,9 +112,12 @@ export async function renderizarNovedades(contenedor, rol) {
                 alert('Novedad guardada, pero error al crear OT: ' + otError.message);
             } else {
                 alert(`Novedad registrada y OT ${numero_ot} creada.`);
+                // Notificación push
+                await enviarPush(`🔧 Nueva OT ${numero_ot} creada: ${tag}`);
             }
         } else {
             alert('Novedad registrada.');
+            await enviarPush(`📸 Nueva novedad reportada en ${tag}`);
         }
 
         document.getElementById('form-novedad').reset();
