@@ -63,7 +63,7 @@ export async function renderizarPanel(contenedor, rol) {
             { nombre: 'calderin', key: 'ph_calderin' },
             { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' },
             { nombre: 'caldera sulfato', key: 'ph_caldera_sulfato' },
-            { nombre: 'tanque elevado', key: 'ph_tanque_elevado' }
+            { nombre: 'tanque ylevado', key: 'ph_tanque_elevado' }
         ];
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -155,7 +155,7 @@ export async function renderizarPanel(contenedor, rol) {
                         </tr>
                     </thead>
                     <tbody class="text-slate-300">
-                        ${['A','B','C','D'].map(tq => {
+                        ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104'].map(tq => {
                             const cert = certPorTanque[tq];
                             if (!cert) return `<tr><td class="py-1 pr-2 font-medium">${tq}</td><td colspan="4" class="py-1 text-slate-500">Sin certificación</td></tr>`;
                             const vencimiento = new Date(cert.fecha_vigencia);
@@ -176,10 +176,10 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="mt-3 pt-3 border-t border-slate-700">
                 <h4 class="text-xs font-semibold text-slate-400 mb-1">Acidez de Azufre</h4>
                 <div class="grid grid-cols-2 gap-1 text-xs text-slate-300">
-                    <div>TQ-A: <span class="font-bold">${azufreAcidez.acidez_tq_a ?? '--'}%</span></div>
-                    <div>TQ-B: <span class="font-bold">${azufreAcidez.acidez_tq_b ?? '--'}%</span></div>
-                    <div>TQ-C: <span class="font-bold">${azufreAcidez.acidez_tq_c ?? '--'}%</span></div>
-                    <div>TQ-D: <span class="font-bold">${azufreAcidez.acidez_tq_d ?? '--'}%</span></div>
+                    <div>TQ-4302-A: <span class="font-bold">${azufreAcidez.acidez_tq_a ?? '--'}%</span></div>
+                    <div>TQ-4302-B: <span class="font-bold">${azufreAcidez.acidez_tq_b ?? '--'}%</span></div>
+                    <div>TQ-4302-C: <span class="font-bold">${azufreAcidez.acidez_tq_c ?? '--'}%</span></div>
+                    <div>TQ-4602-D: <span class="font-bold">${azufreAcidez.acidez_tq_d ?? '--'}%</span></div>
                 </div>
             </div>
         </div>`;
