@@ -17,8 +17,8 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
             supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
-            // Traer todas las certificaciones de azufre recientes (luego procesamos la última por tanque)
-            supabase.from('certificaciones_azufre').select('*').order('fecha_analisis', { ascending: false }).limit(50),
+            // Usar la función personalizada para obtener la última acidez por tanque
+            supabase.rpc('ultima_acidez_azufre'),
             supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
         ]);
 
@@ -45,16 +45,11 @@ export async function renderizarPanel(contenedor, rol) {
         const certPorTanque = {};
         certsAcido.forEach(c => { if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c; });
 
-        // Certificaciones de azufre: obtener la última para cada tanque
-        const certsAzufre = certAzufreRes.data || [];
+        // Acidez de azufre: la función RPC ya devuelve {tanque, acidez}
+        const acidezAzufreData = certAzufreRes.data || [];
         const acidezPorTanque = {};
-        const tanquesAzufre = ['TQ-4302A', 'TQ-4302B', 'TQ-4302C', 'TQ-4302D'];
-        tanquesAzufre.forEach(tq => {
-            // Buscar el registro más reciente para este tanque
-            const ultimo = (certsAzufre || []).find(c => c.tanque === tq);
-            if (ultimo) {
-                acidezPorTanque[tq] = ultimo.acidez;
-            }
+        acidezAzufreData.forEach(row => {
+            acidezPorTanque[row.tanque] = row.acidez;
         });
 
         // ==================== HTML ====================
