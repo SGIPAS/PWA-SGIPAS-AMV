@@ -1,7 +1,6 @@
-// ocp Submódulo de avances y revalidaciones de OT – con notificaciones push
+// ocp Submódulo de avances y revalidaciones de OT
 import { supabase } from '../../supabase-client.js';
 import { formatearFecha } from './utils.js';
-//import { enviarPushARoles } from '../../push.js';
 
 export async function cargarVistaAvances(otId, rol, contenedor) {
     const { data: ot } = await supabase.from('ordenes_trabajo').select('estado, requiere_pts, numero_ot').eq('id', otId).single();
@@ -107,10 +106,7 @@ export async function cargarVistaAvances(otId, rol, contenedor) {
                 estado: 'finalizada_ejecutor',
                 fecha_fin_real: new Date().toISOString()
             }).eq('id', otId);
-
             alert('Estado actualizado a "Finalizada por ejecutor". Planta debe auditar.');
-            //await enviarPushARoles(['admin', 'supervisor', 'inspector_ssl'],
-                `✅ Ejecutor finalizó trabajo en OT ${ot.numero_ot}`);
             const { mostrarDetalle } = await import('./detalle.js');
             mostrarDetalle(otId, rol);
         });
