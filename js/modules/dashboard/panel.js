@@ -1,4 +1,4 @@
-// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado)
+// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado, laboratorio mejorado, sin motores)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
@@ -7,23 +7,20 @@ export async function renderizarPanel(contenedor, rol) {
         const hoy = new Date().toISOString().split('T')[0];
 
         const [
-            acidoRes, phRes, otRes, consumoRes, emisionesRes, motoresRes, fundicionRes, inventarioRes,
+            acidoRes, phRes, otRes, consumoRes, emisionesRes, fundicionRes,
             certAcidoRes, azufreAcidezRes, prodHoyRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
-            supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(50),
+            supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(60),
             supabase.from('ordenes_trabajo').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente'),
             supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(10),
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
-            supabase.from('mediciones_motores').select('temperatura, punto_medicion!inner(tag_equipo)').order('created_at', { ascending: false }).limit(200),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
-            supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(50),
             supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
-            supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1), // para acidez azufre
-            supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)   // producción de hoy
+            supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
+            supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
         ]);
 
-        // Procesar datos principales
         const ultimoAcido = acidoRes.data?.[0];
         const phTodos = phRes.data || [];
         const pendientes = otRes.count ?? 0;
@@ -32,22 +29,17 @@ export async function renderizarPanel(contenedor, rol) {
         const ultimoConsumo = {};
         (consumoRes.data || []).forEach(c => { if (!ultimoConsumo[c.tipo]) ultimoConsumo[c.tipo] = c.valor_m3; });
         const ultimaEmision = emisionesRes.data?.[0];
-        const ultimoMotorTemp = {};
-        (motoresRes.data || []).forEach(m => {
-            const tag = m.punto_medicion?.tag_equipo;
-            if (tag && !ultimoMotorTemp[tag]) ultimoMotorTemp[tag] = m.temperatura;
-        });
         const ultimaFundicion = fundicionRes.data?.[0];
 
         // Balance de azufre
         const bigBagsHoy = ultimaFundicion?.big_bags || 0;
-        const azufreConsumido = bigBagsHoy * 1.2; // toneladas (asumiendo 1.2 ton por big bag)
+        const azufreConsumido = bigBagsHoy * 1.2;
         const acidoProducido = (prodHoyRes.data || []).reduce((s, p) => s + p.toneladas, 0);
-        const factorConversion = 3.0; // 1 ton azufre → 3.0 ton ácido (ajustable)
+        const factorConversion = 3.0;
         const rendimiento = azufreConsumido > 0 ? (acidoProducido / (azufreConsumido * factorConversion)) * 100 : 0;
         const merma = 100 - rendimiento;
 
-        // Laboratorio
+        // Certificaciones y acidez de azufre
         const certsAcido = certAcidoRes.data || [];
         const certPorTanque = {};
         certsAcido.forEach(c => { if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c; });
@@ -56,21 +48,22 @@ export async function renderizarPanel(contenedor, rol) {
         // ==================== HTML ====================
         let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">`;
 
-        // Tarjeta Ácido
+        // Tarjeta Ácido con NTU
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Ácido Sulfúrico</h3>
             <p class="text-2xl font-bold">${ultimoAcido?.concentracion?.toFixed(2) ?? '--'} %</p>
-            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(colorSemaforo(ultimoAcido?.concentracion, UMBRALES.acido))}">
-                ${ultimoAcido?.concentracion ? '●' : 'Sin datos'}
-            </span>
+            <p class="text-xs text-slate-400">NTU: ${ultimoAcido?.turbidez_ntu?.toFixed(2) ?? '--'}</p>
+            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(colorSemaforo(ultimoAcido?.concentracion, UMBRALES.acido))}">${ultimoAcido?.concentracion ? '●' : 'Sin datos'}</span>
         </div>`;
 
-        // Tarjeta pH unificada
+        // Tarjeta pH unificada (5 puntos)
         const phKeys = [
             { nombre: 'caldera de acido', key: 'ph_caldera_acido' },
             { nombre: 'calderin', key: 'ph_calderin' },
-            { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' }
+            { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' },
+            { nombre: 'caldera sulfato', key: 'ph_caldera_sulfato' },
+            { nombre: 'tanque elevado', key: 'ph_tanque_elevado' }
         ];
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -95,9 +88,7 @@ export async function renderizarPanel(contenedor, rol) {
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">OTs Pendientes</h3>
             <p class="text-2xl font-bold">${pendientes}</p>
-            <span class="text-xs ${pendientes > 5 ? 'text-red-400' : 'text-green-400'}">
-                ${pendientes > 5 ? '⚠️ Atención' : '✅ Bajo control'}
-            </span>
+            <span class="text-xs ${pendientes > 5 ? 'text-red-400' : 'text-green-400'}">${pendientes > 5 ? '⚠️ Atención' : '✅ Bajo control'}</span>
         </div>`;
 
         // Tarjeta Emisiones SO₂
@@ -110,20 +101,18 @@ export async function renderizarPanel(contenedor, rol) {
             <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">${so2Val ? '●' : 'Sin datos'}</span>
         </div>`;
 
-        // Tarjeta Fundición
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">Fundición (hoy)</h3>
-            <p class="text-2xl font-bold">${bigBagsHoy} BB</p>
-            <span class="text-xs text-slate-400">Acidez TQ-A: ${ultimaFundicion?.acidez_tq_a ?? '--'}%</span>
-        </div>`;
+        html += `</div>`; // Fin cuadrícula superior
 
-        // ---- Tarjeta Balance de Azufre con velocímetro ----
+        // ---- Fila inferior (3 tarjetas: Balance, Consumo, Laboratorio) ----
+        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
+
+        // Balance de Azufre + Fundición
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400">Balance de Azufre (hoy)</h3>
             <div class="flex items-center justify-between mt-2">
                 <div>
+                    <p class="text-xs">Big Bags: <span class="font-bold">${bigBagsHoy}</span></p>
                     <p class="text-xs">Azufre cons.: <span class="font-bold">${azufreConsumido.toFixed(1)} ton</span></p>
                     <p class="text-xs">Ácido prod.: <span class="font-bold">${acidoProducido.toFixed(1)} ton</span></p>
                     <p class="text-xs">Rendimiento: <span class="font-bold ${rendimiento >= 99.2 ? 'text-green-400' : 'text-yellow-400'}">${rendimiento.toFixed(1)}%</span></p>
@@ -139,11 +128,6 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        html += `</div>`; // Fin cuadrícula superior
-
-        // ---- Fila de tres tarjetas grandes ----
-        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
-
         // Consumo de Agua
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -155,54 +139,52 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        // Motores
-        const equiposMotor = Object.keys(ultimoMotorTemp).sort();
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400 mb-2">Temperatura de Motores (°C)</h3>
-            ${equiposMotor.length ? `
-            <div class="grid grid-cols-2 gap-1 text-sm">
-                ${equiposMotor.map(tag => `
-                    <div><span class="text-slate-300">${tag}:</span> <span class="font-bold">${ultimoMotorTemp[tag]?.toFixed(1)}</span></div>
-                `).join('')}
-            </div>` : '<p class="text-sm text-slate-400">Sin datos de motores.</p>'}
-        </div>`;
-
-        // Laboratorio
+        // Laboratorio (versión mejorada)
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
-            <div class="space-y-3">
-                <div>
-                    <h4 class="text-xs font-semibold text-slate-300 mb-1">Certificaciones de Ácido</h4>
-                    ${['A','B','C','D'].map(tq => {
-                        const cert = certPorTanque[tq];
-                        if (!cert) return `<p class="text-xs text-slate-500">TQ-${tq}: Sin certificación</p>`;
-                        const vencimiento = new Date(cert.fecha_vigencia);
-                        const diasRestantes = Math.ceil((vencimiento - new Date()) / (1000*60*60*24));
-                        const vencido = diasRestantes < 0;
-                        return `
-                        <div class="flex items-center justify-between text-xs py-1">
-                            <span class="font-medium">TQ-${tq}: ${cert.concentracion}%</span>
-                            <span class="${vencido ? 'text-red-400' : 'text-green-400'}">
-                                ${vencido ? 'Vencido' : `Vence en ${diasRestantes} días`}
-                            </span>
-                        </div>`;
-                    }).join('')}
-                </div>
-                <div>
-                    <h4 class="text-xs font-semibold text-slate-300 mb-1">Acidez de Azufre</h4>
-                    <div class="grid grid-cols-2 gap-1 text-xs">
-                        <div>TQ-A: <span class="font-bold">${azufreAcidez.acidez_tq_a ?? '--'}%</span></div>
-                        <div>TQ-B: <span class="font-bold">${azufreAcidez.acidez_tq_b ?? '--'}%</span></div>
-                        <div>TQ-C: <span class="font-bold">${azufreAcidez.acidez_tq_c ?? '--'}%</span></div>
-                        <div>TQ-D: <span class="font-bold">${azufreAcidez.acidez_tq_d ?? '--'}%</span></div>
-                    </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="text-slate-400 border-b border-slate-700">
+                        <tr>
+                            <th class="py-1 pr-2 text-left">TQ</th>
+                            <th class="py-1 pr-2 text-right">Conc.</th>
+                            <th class="py-1 pr-2 text-right">NTU</th>
+                            <th class="py-1 pr-2 text-right">Fe</th>
+                            <th class="py-1 text-right">Vence</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-slate-300">
+                        ${['A','B','C','D'].map(tq => {
+                            const cert = certPorTanque[tq];
+                            if (!cert) return `<tr><td class="py-1 pr-2 font-medium">${tq}</td><td colspan="4" class="py-1 text-slate-500">Sin certificación</td></tr>`;
+                            const vencimiento = new Date(cert.fecha_vigencia);
+                            const diasRestantes = Math.ceil((vencimiento - new Date()) / (1000*60*60*24));
+                            const vencido = diasRestantes < 0;
+                            return `
+                            <tr class="border-b border-slate-800 last:border-0">
+                                <td class="py-1 pr-2 font-medium">${tq}</td>
+                                <td class="py-1 pr-2 text-right">${cert.concentracion}%</td>
+                                <td class="py-1 pr-2 text-right">${cert.ntu ?? '--'}</td>
+                                <td class="py-1 pr-2 text-right">${cert.ppm_fe ?? '--'}</td>
+                                <td class="py-1 text-right ${vencido ? 'text-red-400' : 'text-green-400'}">${vencido ? 'Vencido' : diasRestantes + 'd'}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-700">
+                <h4 class="text-xs font-semibold text-slate-400 mb-1">Acidez de Azufre</h4>
+                <div class="grid grid-cols-2 gap-1 text-xs text-slate-300">
+                    <div>TQ-A: <span class="font-bold">${azufreAcidez.acidez_tq_a ?? '--'}%</span></div>
+                    <div>TQ-B: <span class="font-bold">${azufreAcidez.acidez_tq_b ?? '--'}%</span></div>
+                    <div>TQ-C: <span class="font-bold">${azufreAcidez.acidez_tq_c ?? '--'}%</span></div>
+                    <div>TQ-D: <span class="font-bold">${azufreAcidez.acidez_tq_d ?? '--'}%</span></div>
                 </div>
             </div>
         </div>`;
 
-        html += `</div>`; // Fin fila de tres
+        html += `</div>`; // Fin fila inferior
 
         contenedor.innerHTML = html;
 
