@@ -1,6 +1,6 @@
 // ocp Submódulo de cierre de conformidad (Operaciones)
 import { supabase } from '../../supabase-client.js';
-import { notificarARoles } from '../../notificaciones.js'; // ocp para alertas
+import { enviarPush } from '../../push.js';
 
 export async function cargarVistaCierres(otId, rol, contenedor) {
     const { data: ot } = await supabase.from('ordenes_trabajo').select('estado, numero_ot').eq('id', otId).single();
@@ -40,7 +40,6 @@ export async function cargarVistaCierres(otId, rol, contenedor) {
             const obs = document.getElementById('cierre-obs').value;
             const { data: { user } } = await supabase.auth.getUser();
 
-            // Insertar avance de cierre
             await supabase.from('avances_ot').insert([{
                 orden_id: otId,
                 usuario_id: user.id,
@@ -49,18 +48,14 @@ export async function cargarVistaCierres(otId, rol, contenedor) {
                 metadata: { checklist: ['limpieza', 'loto', 'pruebas'] }
             }]);
 
-            // Actualizar estado y fecha de cierre
             await supabase.from('ordenes_trabajo').update({
                 estado: 'cerrada',
                 fecha_cierre: new Date().toISOString(),
                 observaciones_cierre: obs
             }).eq('id', otId);
 
-            // ocp Notificar a ejecutor y ssl
-            await notificarARoles(['ejecutor', 'inspector_ssl'],
-                `OT ${ot.numero_ot} cerrada por Operaciones. Trabajo conforme.`);
-
             alert('OT cerrada exitosamente.');
+            await enviarPush(`🎯 OT ${ot.numero_ot} cerrada por operaciones`);
             const { irATablero } = await import('./index.js');
             irATablero();
         });
