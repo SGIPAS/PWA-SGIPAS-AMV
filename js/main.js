@@ -36,7 +36,7 @@ async function construirSidebar(rol) {
         reportes:      ['admin', 'supervisor'].includes(rol),
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
         disposicion:   ['admin', 'supervisor', 'operador'].includes(rol),
-        laboratorio:   ['admin', 'analista', 'supervisor', 'operador', 'inspector_ssl'].includes(rol),
+        laboratorio:   ['admin', 'analista'].includes(rol),
         rutinas:       ['admin', 'supervisor', 'operador'].includes(rol),
         usuarios:      rol === 'admin',
         ssl:           ['admin', 'inspector_ssl'].includes(rol)
