@@ -1,6 +1,5 @@
-// ocp Submódulo de cierre de conformidad – con notificaciones push
+// ocp Submódulo de cierre de conformidad (Operaciones)
 import { supabase } from '../../supabase-client.js';
-//import { enviarPushARoles } from '../../push.js';
 
 export async function cargarVistaCierres(otId, rol, contenedor) {
     const { data: ot } = await supabase.from('ordenes_trabajo').select('estado, numero_ot').eq('id', otId).single();
@@ -55,8 +54,6 @@ export async function cargarVistaCierres(otId, rol, contenedor) {
             }).eq('id', otId);
 
             alert('OT cerrada exitosamente.');
-            //await enviarPushARoles(['ejecutor', 'inspector_ssl'],
-                `🎯 OT ${ot.numero_ot} cerrada bajo conformidad`);
             const { irATablero } = await import('./index.js');
             irATablero();
         });
