@@ -8,7 +8,7 @@ export async function renderizarPanel(contenedor, rol) {
 
         const [
             acidoRes, phRes, otRes, consumoRes, emisionesRes, fundicionRes,
-            certAcidoRes, azufreAcidezRes, prodHoyRes
+            certAcidoRes, certAzufreRes, prodHoyRes   // se añade certAzufreRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(60),
@@ -17,7 +17,7 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
             supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
-            supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
+            supabase.from('certificaciones_azufre').select('*').order('fecha_analisis', { ascending: false }).limit(4),  // nueva consulta
             supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
         ]);
 
@@ -39,11 +39,17 @@ export async function renderizarPanel(contenedor, rol) {
         const rendimiento = azufreConsumido > 0 ? (acidoProducido / (azufreConsumido * factorConversion)) * 100 : 0;
         const merma = 100 - rendimiento;
 
-        // Certificaciones y acidez de azufre
+        // Certificaciones de ácido (última por tanque)
         const certsAcido = certAcidoRes.data || [];
         const certPorTanque = {};
         certsAcido.forEach(c => { if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c; });
-        const azufreAcidez = azufreAcidezRes.data?.[0] || {};
+
+        // Certificaciones de azufre (última por tanque)
+        const certsAzufre = certAzufreRes.data || [];
+        const acidezPorTanque = {};
+        certsAzufre.forEach(c => {
+            if (!acidezPorTanque[c.tanque]) acidezPorTanque[c.tanque] = c.acidez;
+        });
 
         // ==================== HTML ====================
         let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">`;
@@ -63,7 +69,7 @@ export async function renderizarPanel(contenedor, rol) {
             { nombre: 'calderin', key: 'ph_calderin' },
             { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' },
             { nombre: 'caldera sulfato', key: 'ph_caldera_sulfato' },
-            { nombre: 'tanque ylevado', key: 'ph_tanque_elevado' }
+            { nombre: 'tanque elevado', key: 'ph_tanque_elevado' }
         ];
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -139,7 +145,7 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        // Laboratorio (versión mejorada)
+        // Laboratorio (versión mejorada con acidez de azufre desde certificaciones)
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
@@ -147,7 +153,7 @@ export async function renderizarPanel(contenedor, rol) {
                 <table class="w-full text-xs">
                     <thead class="text-slate-400 border-b border-slate-700">
                         <tr>
-                            <th class="py-1 pr-2 text-left">TQ</th>
+                            <th class="py-1 pr-2 text-left">Tanque</th>
                             <th class="py-1 pr-2 text-right">Conc.</th>
                             <th class="py-1 pr-2 text-right">NTU</th>
                             <th class="py-1 pr-2 text-right">Fe</th>
@@ -176,10 +182,10 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="mt-3 pt-3 border-t border-slate-700">
                 <h4 class="text-xs font-semibold text-slate-400 mb-1">Acidez de Azufre</h4>
                 <div class="grid grid-cols-2 gap-1 text-xs text-slate-300">
-                    <div>TQ-4302-A: <span class="font-bold">${azufreAcidez.acidez_tq_a ?? '--'}%</span></div>
-                    <div>TQ-4302-B: <span class="font-bold">${azufreAcidez.acidez_tq_b ?? '--'}%</span></div>
-                    <div>TQ-4302-C: <span class="font-bold">${azufreAcidez.acidez_tq_c ?? '--'}%</span></div>
-                    <div>TQ-4602-D: <span class="font-bold">${azufreAcidez.acidez_tq_d ?? '--'}%</span></div>
+                    <div>TQ-4302A: <span class="font-bold">${acidezPorTanque['TQ-4302A']?.toFixed(4) ?? '--'}%</span></div>
+                    <div>TQ-4302B: <span class="font-bold">${acidezPorTanque['TQ-4302B']?.toFixed(4) ?? '--'}%</span></div>
+                    <div>TQ-4302C: <span class="font-bold">${acidezPorTanque['TQ-4302C']?.toFixed(4) ?? '--'}%</span></div>
+                    <div>TQ-4302D: <span class="font-bold">${acidezPorTanque['TQ-4302D']?.toFixed(4) ?? '--'}%</span></div>
                 </div>
             </div>
         </div>`;
