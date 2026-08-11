@@ -1,16 +1,9 @@
 // ocp Módulo de notificaciones push – envío a través de OneSignal
-import { supabase } from '../supabase-client.js';
+import { supabase } from './supabase-client.js';  // ruta correcta: mismo nivel que push.js
 
-export async function enviarPush(destinatarioId, mensaje) {
-    if (!destinatarioId || !mensaje) return;
-
-    // Obtener playerId del destinatario desde la tabla dispositivos (si la implementaste)
-    // o desde localStorage (solo para pruebas). Para producción, deberías tener
-    // una tabla que relacione usuario_id con player_id.
-    // Por ahora, usaremos un enfoque simplificado: notificar al usuario actual (prueba).
-    // Cuando tengas la tabla dispositivos poblada, cambia esto.
+export async function enviarPush(mensaje) {
     const playerId = localStorage.getItem('playerId');
-    if (!playerId) return;
+    if (!playerId || !mensaje) return;
 
     try {
         const { error } = await supabase.functions.invoke('notificar', {
