@@ -62,7 +62,7 @@ async function renderizarCertAcido(contenedor) {
                         <div>
                             <label class="block text-slate-400 text-sm">Tanque</label>
                             <select id="cert-tanque" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                                <option value="A">TQ-3101</option><option value="B">TQ-3102</option><option value="C">TQ-3103</option><option value="D">TQ-3104</option>
+                                <option value="TQ-3101">TQ-3101</option><option value="TQ-3102">TQ-3102</option><option value="TQ-3103">TQ-3103</option><option value="TQ3104">TQ3104</option>
                             </select>
                         </div>
                         <div>
