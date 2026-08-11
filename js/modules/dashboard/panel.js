@@ -1,4 +1,4 @@
-// ocp Panel de Control – semáforos, KPIs, balance de azufre (sin tarjeta de inventario redundante)
+// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
@@ -66,23 +66,29 @@ export async function renderizarPanel(contenedor, rol) {
             </span>
         </div>`;
 
-        // Tarjetas pH
-        const puntosPH = [
+        // Tarjeta pH unificada
+        const phKeys = [
             { nombre: 'caldera de acido', key: 'ph_caldera_acido' },
             { nombre: 'calderin', key: 'ph_calderin' },
             { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' }
         ];
-        puntosPH.forEach(p => {
-            const valor = ultimoPH[p.nombre];
-            const umbral = UMBRALES[p.key] || null;
-            const semaforo = colorSemaforo(valor, umbral);
-            html += `
-            <div class="bg-slate-900 p-4 rounded border border-slate-700">
-                <h3 class="text-sm text-slate-400">pH ${p.nombre}</h3>
-                <p class="text-2xl font-bold">${valor?.toFixed(2) ?? '--'}</p>
-                <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(semaforo)}">${valor ? '●' : 'Sin datos'}</span>
-            </div>`;
-        });
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400 mb-3">pH de Aguas</h3>
+            <div class="space-y-2">
+                ${phKeys.map(p => {
+                    const valor = ultimoPH[p.nombre];
+                    const umbral = UMBRALES[p.key] || null;
+                    const semaforo = colorSemaforo(valor, umbral);
+                    return `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-slate-300">${p.nombre}</span>
+                        <span class="text-sm font-bold ${valor !== undefined ? 'text-white' : 'text-slate-500'}">${valor?.toFixed(2) ?? '--'}</span>
+                        <span class="inline-block w-3 h-3 rounded-full ${colorClase(semaforo)}" title="${semaforo}"></span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
 
         // Tarjeta OTs Pendientes
         html += `
