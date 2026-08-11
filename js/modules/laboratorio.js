@@ -62,7 +62,10 @@ async function renderizarCertAcido(contenedor) {
                         <div>
                             <label class="block text-slate-400 text-sm">Tanque</label>
                             <select id="cert-tanque" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                                <option value="TQ-3101">TQ-3101</option><option value="TQ-3102">TQ-3102</option><option value="TQ-3103">TQ-3103</option><option value="TQ3104">TQ3104</option>
+                                <option value="TQ-3101">TQ-3101</option>
+                                <option value="TQ-3102">TQ-3102</option>
+                                <option value="TQ-3103">TQ-3103</option>
+                                <option value="TQ-3104">TQ-3104</option>
                             </select>
                         </div>
                         <div>
@@ -124,7 +127,7 @@ async function cargarListaCertAcido() {
     container.innerHTML = data.map(c => `
         <div class="bg-slate-800 p-2 rounded text-sm">
             <span class="text-slate-400">${c.fecha_analisis} (Vence: ${c.fecha_vigencia})</span>
-            <span class="ml-2 font-bold text-white">TQ-${c.tanque}</span>
+            <span class="ml-2 font-bold text-white">${c.tanque}</span>
             <span class="ml-2 text-blue-400">${c.concentracion}% | NTU:${c.ntu??'-'} | Fe:${c.ppm_fe??'-'}ppm</span>
         </div>
     `).join('');
@@ -140,8 +143,14 @@ async function renderizarCertAzufre(contenedor) {
                 ${puedeRegistrar ? `
                 <form id="form-cert-azufre" class="space-y-4">
                     <div>
-                        <label class="block text-slate-400 text-sm">Proveedor</label>
-                        <input type="text" id="cert-proveedor" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                        <label class="block text-slate-400 text-sm">Tanque</label>
+                        <select id="cert-tanque-azufre" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                            <option value="">Seleccione...</option>
+                            <option value="TQ-4302A">TQ-4302A</option>
+                            <option value="TQ-4302B">TQ-4302B</option>
+                            <option value="TQ-4302C">TQ-4302C</option>
+                            <option value="TQ-4302D">TQ-4302D</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Acidez (%)</label>
@@ -166,13 +175,16 @@ async function renderizarCertAzufre(contenedor) {
     if (puedeRegistrar) {
         document.getElementById('form-cert-azufre').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const proveedor = document.getElementById('cert-proveedor').value.trim();
+            const tanque = document.getElementById('cert-tanque-azufre').value;
+            if (!tanque) return alert('Seleccione un tanque.');
             const acidez = parseFloat(document.getElementById('cert-acidez').value);
             const impurezas = document.getElementById('cert-impurezas')?.value.trim() || null;
             const { data: { user } } = await supabase.auth.getUser();
 
+            // Guardamos el proveedor como el tag del tanque (puedes cambiar esto si prefieres otro campo)
             const { error } = await supabase.from('certificaciones_azufre').insert([{
-                proveedor, acidez, impurezas,
+                proveedor: tanque, // Usamos el campo proveedor para guardar el tanque (o puedes añadir una columna tanque)
+                acidez, impurezas,
                 fecha_analisis: new Date().toISOString().split('T')[0],
                 registrado_por: user.id
             }]);
