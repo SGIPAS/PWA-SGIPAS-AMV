@@ -1,9 +1,8 @@
 // ocp Formulario para emitir un nuevo PTS/ART
 import { supabase } from '../../supabase-client.js';
-import { notificarARoles } from '../../notificaciones.js'; // ocp para alertas
+import { enviarPush } from '../../push.js';
 
 export async function renderizarEmitirPTS(contenedor, rol) {
-    // Solo admin e inspector_ssl pueden emitir
     const puedeEmitir = ['admin', 'inspector_ssl'].includes(rol);
 
     contenedor.innerHTML = `
@@ -73,7 +72,6 @@ export async function renderizarEmitirPTS(contenedor, rol) {
 
     if (!puedeEmitir) return;
 
-    // Cargar OTs pendientes que requieran PTS
     const { data: ots } = await supabase
         .from('ordenes_trabajo')
         .select('id, numero_ot, titulo')
@@ -110,20 +108,17 @@ export async function renderizarEmitirPTS(contenedor, rol) {
         const { error: insError } = await supabase.from('permisos_ssl').insert([payload]);
         if (insError) return alert('Error al guardar PTS: ' + insError.message);
 
-        // Cambiar estado de la OT a "aprobada_seguridad"
         const { error: updError } = await supabase
             .from('ordenes_trabajo')
             .update({ estado: 'aprobada_seguridad', fecha_aprobacion_seguridad: new Date().toISOString() })
             .eq('id', orden_id);
         if (updError) return alert('Error al actualizar OT: ' + updError.message);
 
-        // ocp Notificar a roles de operaciones y ejecutor
         const { data: otData } = await supabase.from('ordenes_trabajo').select('numero_ot').eq('id', orden_id).single();
         const numOT = otData?.numero_ot || '';
-        await notificarARoles(['admin', 'supervisor', 'operador', 'ejecutor'],
-            `PTS emitido para OT ${numOT}. Trabajo aprobado por seguridad.`);
 
         alert('PTS emitido correctamente. La OT ahora está aprobada para ejecución.');
+        await enviarPush(`⚠️ PTS emitido para OT ${numOT}`);
         document.getElementById('form-pts').reset();
         location.reload();
     });
