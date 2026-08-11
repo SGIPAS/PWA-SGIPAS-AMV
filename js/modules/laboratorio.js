@@ -70,15 +70,15 @@ async function renderizarCertAcido(contenedor) {
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">Concentración (%)</label>
-                            <input type="number" step="0.01" id="cert-conc" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                            <input type="number" step="any" id="cert-conc" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">NTU</label>
-                            <input type="number" step="0.01" id="cert-ntu" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="cert-ntu" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-slate-400 text-sm">Fe (ppm)</label>
-                            <input type="number" step="0.01" id="cert-fe" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
+                            <input type="number" step="any" id="cert-fe" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                         </div>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Guardar</button>
@@ -154,7 +154,7 @@ async function renderizarCertAzufre(contenedor) {
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Acidez (%)</label>
-                        <input type="number" step="0.0001" id="cert-acidez" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                        <input type="number" step="any" id="cert-acidez" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
                     </div>
                     <div>
                         <label class="block text-slate-400 text-sm">Impurezas</label>
@@ -181,10 +181,10 @@ async function renderizarCertAzufre(contenedor) {
             const impurezas = document.getElementById('cert-impurezas')?.value.trim() || null;
             const { data: { user } } = await supabase.auth.getUser();
 
-            // Guardamos el proveedor como el tag del tanque (puedes cambiar esto si prefieres otro campo)
             const { error } = await supabase.from('certificaciones_azufre').insert([{
-                proveedor: tanque, // Usamos el campo proveedor para guardar el tanque (o puedes añadir una columna tanque)
-                acidez, impurezas,
+                tanque,   // <-- Guarda en la columna correcta
+                acidez,
+                impurezas,
                 fecha_analisis: new Date().toISOString().split('T')[0],
                 registrado_por: user.id
             }]);
@@ -206,7 +206,7 @@ async function cargarListaCertAzufre() {
     container.innerHTML = data.map(c => `
         <div class="bg-slate-800 p-2 rounded text-sm">
             <span class="text-slate-400">${c.fecha_analisis}</span>
-            <span class="ml-2 font-bold text-white">${c.proveedor}</span>
+            <span class="ml-2 font-bold text-white">${c.tanque || c.proveedor || 'Sin tanque'}</span>
             <span class="ml-2 text-blue-400">Acidez: ${c.acidez}%</span>
             ${c.impurezas ? `<p class="text-xs text-slate-400 mt-1">${c.impurezas}</p>` : ''}
         </div>
