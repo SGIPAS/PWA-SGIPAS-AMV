@@ -1,5 +1,6 @@
-// ocp Formulario para emitir un nuevo PTS/ART
+// ocp Formulario para emitir un nuevo PTS/ART – con notificación push
 import { supabase } from '../../supabase-client.js';
+import { enviarPushARoles } from '../../push.js';
 
 export async function renderizarEmitirPTS(contenedor, rol) {
     const puedeEmitir = ['admin', 'inspector_ssl'].includes(rol);
@@ -113,7 +114,12 @@ export async function renderizarEmitirPTS(contenedor, rol) {
             .eq('id', orden_id);
         if (updError) return alert('Error al actualizar OT: ' + updError.message);
 
+        const { data: otData } = await supabase.from('ordenes_trabajo').select('numero_ot').eq('id', orden_id).single();
+        const numOT = otData?.numero_ot || '';
+
         alert('PTS emitido correctamente. La OT ahora está aprobada para ejecución.');
+        await enviarPushARoles(['ejecutor', 'admin', 'supervisor'],
+            `⚠️ PTS emitido para OT ${numOT}`);
         document.getElementById('form-pts').reset();
         location.reload();
     });
