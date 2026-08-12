@@ -141,13 +141,12 @@ async function renderizarCertAcido(contenedor) {
             document.getElementById('form-cert-acido').reset();
             cargarListaCertAcido();
 
-            // --- Notificación push ---
+            // Notificación a todos los dispositivos
             try {
-                await supabase.functions.invoke('notificar-certificacion', {
-                    body: {
-                        tipo: 'acido',
-                        puntos: inserciones.map(i => i.tanque)
-                    }
+                const mensaje = `Certificación de ácido: ${inserciones.map(i => i.tanque).join(', ')}`;
+                await supabase.rpc('notificar_a_todos', {
+                    titulo: 'Resultado de Laboratorio',
+                    mensaje: mensaje
                 });
             } catch (notifErr) {
                 console.warn('Notificación no enviada:', notifErr);
@@ -256,13 +255,12 @@ async function renderizarCertAzufre(contenedor) {
             document.getElementById('form-cert-azufre').reset();
             cargarListaCertAzufre();
 
-            // --- Notificación push ---
+            // Notificación a todos los dispositivos
             try {
-                await supabase.functions.invoke('notificar-certificacion', {
-                    body: {
-                        tipo: 'azufre',
-                        puntos: inserciones.map(i => i.tanque)
-                    }
+                const mensaje = `Acidez de azufre: ${inserciones.map(i => i.tanque).join(', ')}`;
+                await supabase.rpc('notificar_a_todos', {
+                    titulo: 'Resultado de Laboratorio',
+                    mensaje: mensaje
                 });
             } catch (notifErr) {
                 console.warn('Notificación no enviada:', notifErr);
@@ -348,13 +346,11 @@ async function renderizarDispAcido(contenedor) {
             actualizarSaldoDisp();
             cargarListaDispAcido();
 
-            // --- Notificación push ---
+            // Notificación a todos los dispositivos
             try {
-                await supabase.functions.invoke('notificar-certificacion', {
-                    body: {
-                        tipo: 'disposicion',
-                        puntos: []
-                    }
+                await supabase.rpc('notificar_a_todos', {
+                    titulo: 'Disposición de Ácido',
+                    mensaje: 'Se ha registrado un nuevo movimiento de disposición de ácido.'
                 });
             } catch (notifErr) {
                 console.warn('Notificación no enviada:', notifErr);
