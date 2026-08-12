@@ -49,39 +49,44 @@ export async function cargarLaboratorio() {
     await activarPestana('cert-acido');
 }
 
-// ==================== CERTIFICACIÓN DE ÁCIDO ====================
+// ==================== CERTIFICACIÓN DE ÁCIDO (versión tabla unificada) ====================
 async function renderizarCertAcido(contenedor) {
     const puedeRegistrar = ['admin', 'analista'].includes(currentUserRole);
     contenedor.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-slate-900 p-4 rounded border border-slate-700">
-                <h3 class="text-lg font-semibold text-white mb-4">Nueva Certificación de Ácido</h3>
+            <div class="bg-slate-900 p-4 rounded border border-slate-700 lg:col-span-1">
+                <h3 class="text-lg font-semibold text-white mb-4">Certificación de Ácido (Tanques + Línea)</h3>
                 ${puedeRegistrar ? `
                 <form id="form-cert-acido" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-slate-400 text-sm">Tanque</label>
-                            <select id="cert-tanque" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                                <option value="TQ-3101">TQ-3101</option>
-                                <option value="TQ-3102">TQ-3102</option>
-                                <option value="TQ-3103">TQ-3103</option>
-                                <option value="TQ-3104">TQ-3104</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 text-sm">Concentración (%)</label>
-                            <input type="number" step="any" id="cert-conc" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 text-sm">NTU</label>
-                            <input type="number" step="any" id="cert-ntu" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 text-sm">Fe (ppm)</label>
-                            <input type="number" step="any" id="cert-fe" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
-                        </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="text-slate-400 border-b border-slate-700">
+                                <tr>
+                                    <th class="py-2 px-2 text-left">Punto</th>
+                                    <th class="py-2 px-2 text-right">Concentración (%)</th>
+                                    <th class="py-2 px-2 text-right">NTU</th>
+                                    <th class="py-2 px-2 text-right">Fe (ppm)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-cert-acido">
+                                ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'].map(punto => `
+                                <tr class="border-b border-slate-800">
+                                    <td class="py-2 px-2 font-medium text-white">${punto}</td>
+                                    <td class="py-2 px-2">
+                                        <input type="number" step="any" name="conc-${punto}" class="w-20 bg-slate-800 border border-slate-700 rounded p-1 text-white text-right" placeholder="0.00">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="number" step="any" name="ntu-${punto}" class="w-20 bg-slate-800 border border-slate-700 rounded p-1 text-white text-right" placeholder="0.00">
+                                    </td>
+                                    <td class="py-2 px-2">
+                                        <input type="number" step="any" name="fe-${punto}" class="w-20 bg-slate-800 border border-slate-700 rounded p-1 text-white text-right" placeholder="0.00">
+                                    </td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Guardar</button>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Guardar Todas las Certificaciones</button>
                 </form>` : '<p class="text-slate-400 italic">Solo analistas pueden registrar.</p>'}
             </div>
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -96,23 +101,56 @@ async function renderizarCertAcido(contenedor) {
     if (puedeRegistrar) {
         document.getElementById('form-cert-acido').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const tanque = document.getElementById('cert-tanque').value;
-            const conc = parseFloat(document.getElementById('cert-conc').value);
-            const ntu = parseFloat(document.getElementById('cert-ntu')?.value) || null;
-            const fe = parseFloat(document.getElementById('cert-fe')?.value) || null;
             const { data: { user } } = await supabase.auth.getUser();
             const fechaAnalisis = new Date().toISOString().split('T')[0];
             const fechaVigencia = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-            const { error } = await supabase.from('certificaciones_acido').insert([{
-                tanque, concentracion: conc, ntu, ppm_fe: fe,
-                fecha_analisis: fechaAnalisis, fecha_vigencia: fechaVigencia,
-                registrado_por: user.id
-            }]);
-            if (error) return alert('Error: ' + error.message);
-            alert('Certificación guardada.');
+            const puntos = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'];
+            const inserciones = [];
+
+            for (const punto of puntos) {
+                const conc = parseFloat(document.querySelector(`[name="conc-${punto}"]`)?.value);
+                const ntu = parseFloat(document.querySelector(`[name="ntu-${punto}"]`)?.value) || null;
+                const fe = parseFloat(document.querySelector(`[name="fe-${punto}"]`)?.value) || null;
+                if (!isNaN(conc)) {
+                    inserciones.push({
+                        tanque: punto,
+                        concentracion: conc,
+                        ntu,
+                        ppm_fe: fe,
+                        fecha_analisis: fechaAnalisis,
+                        fecha_vigencia: fechaVigencia,
+                        registrado_por: user.id
+                    });
+                }
+            }
+
+            if (inserciones.length === 0) {
+                alert('Ingrese al menos una concentración.');
+                return;
+            }
+
+            const { error } = await supabase.from('certificaciones_acido').insert(inserciones);
+            if (error) {
+                alert('Error al guardar: ' + error.message);
+                return;
+            }
+
+            alert('Certificaciones guardadas.');
             document.getElementById('form-cert-acido').reset();
             cargarListaCertAcido();
+
+            // --- Notificación push a todos los dispositivos ---
+            try {
+                await supabase.functions.invoke('notificar-certificacion', {
+                    body: {
+                        tipo: 'acido',
+                        puntos: inserciones.map(i => i.tanque)
+                    }
+                });
+            } catch (notifErr) {
+                console.warn('Notificación no enviada:', notifErr);
+            }
         });
     }
 
@@ -182,7 +220,7 @@ async function renderizarCertAzufre(contenedor) {
             const { data: { user } } = await supabase.auth.getUser();
 
             const { error } = await supabase.from('certificaciones_azufre').insert([{
-                tanque,   // <-- Guarda en la columna correcta
+                tanque,
                 acidez,
                 impurezas,
                 fecha_analisis: new Date().toISOString().split('T')[0],
