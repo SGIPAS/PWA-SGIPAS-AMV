@@ -69,7 +69,7 @@ async function renderizarCertAcido(contenedor) {
                                 </tr>
                             </thead>
                             <tbody id="tabla-cert-acido">
-                                ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'].map(punto => `
+                                ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-1201'].map(punto => `
                                 <tr class="border-b border-slate-800">
                                     <td class="py-2 px-2 font-medium text-white">${punto}</td>
                                     <td class="py-2 px-2">
