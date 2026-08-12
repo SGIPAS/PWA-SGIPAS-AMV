@@ -49,7 +49,7 @@ export async function cargarLaboratorio() {
     await activarPestana('cert-acido');
 }
 
-// ==================== CERTIFICACIÓN DE ÁCIDO (tabla unificada, carga individual) ====================
+// ==================== CERTIFICACIÓN DE ÁCIDO ====================
 async function renderizarCertAcido(contenedor) {
     const puedeRegistrar = ['admin', 'analista'].includes(currentUserRole);
     contenedor.innerHTML = `
@@ -140,6 +140,18 @@ async function renderizarCertAcido(contenedor) {
             alert('Certificaciones guardadas correctamente.');
             document.getElementById('form-cert-acido').reset();
             cargarListaCertAcido();
+
+            // --- Notificación push ---
+            try {
+                await supabase.functions.invoke('notificar-certificacion', {
+                    body: {
+                        tipo: 'acido',
+                        puntos: inserciones.map(i => i.tanque)
+                    }
+                });
+            } catch (notifErr) {
+                console.warn('Notificación no enviada:', notifErr);
+            }
         });
     }
 
@@ -160,7 +172,7 @@ async function cargarListaCertAcido() {
     `).join('');
 }
 
-// ==================== CERTIFICACIÓN DE AZUFRE (tabla unificada, carga individual) ====================
+// ==================== CERTIFICACIÓN DE AZUFRE ====================
 async function renderizarCertAzufre(contenedor) {
     const puedeRegistrar = ['admin', 'analista'].includes(currentUserRole);
     const puntosAzufre = ['TQ-4302A','TQ-4302B','TQ-4302C','TQ-4302D','HORNO-AZUFRE'];
@@ -243,6 +255,18 @@ async function renderizarCertAzufre(contenedor) {
             alert('Certificaciones de azufre guardadas.');
             document.getElementById('form-cert-azufre').reset();
             cargarListaCertAzufre();
+
+            // --- Notificación push ---
+            try {
+                await supabase.functions.invoke('notificar-certificacion', {
+                    body: {
+                        tipo: 'azufre',
+                        puntos: inserciones.map(i => i.tanque)
+                    }
+                });
+            } catch (notifErr) {
+                console.warn('Notificación no enviada:', notifErr);
+            }
         });
     }
 
@@ -323,6 +347,18 @@ async function renderizarDispAcido(contenedor) {
             document.getElementById('form-disp-acido').reset();
             actualizarSaldoDisp();
             cargarListaDispAcido();
+
+            // --- Notificación push ---
+            try {
+                await supabase.functions.invoke('notificar-certificacion', {
+                    body: {
+                        tipo: 'disposicion',
+                        puntos: []
+                    }
+                });
+            } catch (notifErr) {
+                console.warn('Notificación no enviada:', notifErr);
+            }
         });
     }
 }
