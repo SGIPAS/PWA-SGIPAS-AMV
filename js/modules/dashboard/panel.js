@@ -1,4 +1,4 @@
-// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado, laboratorio mejorado, sin motores)
+// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado, laboratorio mejorado, con línea de ácido)
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
@@ -6,9 +6,10 @@ export async function renderizarPanel(contenedor, rol) {
     try {
         const hoy = new Date().toISOString().split('T')[0];
 
+        // Consultas en paralelo (sin certificaciones_acido aquí)
         const [
             acidoRes, phRes, otRes, consumoRes, emisionesRes, fundicionRes,
-            certAcidoRes, certAzufreRes, prodHoyRes
+            acidezAzufreRes, prodHoyRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(60),
@@ -16,8 +17,6 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(10),
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
-            supabase.from('certificaciones_acido').select('*').order('fecha_analisis', { ascending: false }).limit(4),
-            // Usar la función personalizada para obtener la última acidez por tanque
             supabase.rpc('ultima_acidez_azufre'),
             supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
         ]);
@@ -40,17 +39,41 @@ export async function renderizarPanel(contenedor, rol) {
         const rendimiento = azufreConsumido > 0 ? (acidoProducido / (azufreConsumido * factorConversion)) * 100 : 0;
         const merma = 100 - rendimiento;
 
-        // Certificaciones de ácido (última por tanque)
-        const certsAcido = certAcidoRes.data || [];
-        const certPorTanque = {};
-        certsAcido.forEach(c => { if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c; });
-
-        // Acidez de azufre: la función RPC ya devuelve {tanque, acidez}
-        const acidezAzufreData = certAzufreRes.data || [];
+        // Acidez de azufre
+        const acidezAzufreData = acidezAzufreRes.data || [];
         const acidezPorTanque = {};
         acidezAzufreData.forEach(row => {
             acidezPorTanque[row.tanque] = row.acidez;
         });
+
+        // ==================== CONSULTA OPTIMIZADA PARA CERTIFICACIONES DE ÁCIDO ====================
+        const puntosAcido = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'];
+        const { data: certsAcidoReciente } = await supabase
+            .from('certificaciones_acido')
+            .select('*')
+            .order('fecha_analisis', { ascending: false })
+            .limit(50);
+
+        const certPorPunto = {};
+        (certsAcidoReciente || []).forEach(c => {
+            if (!certPorPunto[c.tanque]) certPorPunto[c.tanque] = c;
+        });
+
+        const filasAcido = puntosAcido.map(punto => {
+            const cert = certPorPunto[punto];
+            if (!cert) return `<tr><td class="py-1 pr-2 font-medium">${punto}</td><td colspan="4" class="py-1 text-slate-500">Sin certificación</td></tr>`;
+            const vencimiento = new Date(cert.fecha_vigencia);
+            const diasRestantes = Math.ceil((vencimiento - new Date()) / (1000*60*60*24));
+            const vencido = diasRestantes < 0;
+            return `
+            <tr class="border-b border-slate-800 last:border-0">
+                <td class="py-1 pr-2 font-medium">${punto}</td>
+                <td class="py-1 pr-2 text-right">${cert.concentracion}%</td>
+                <td class="py-1 pr-2 text-right">${cert.ntu ?? '--'}</td>
+                <td class="py-1 pr-2 text-right">${cert.ppm_fe ?? '--'}</td>
+                <td class="py-1 text-right ${vencido ? 'text-red-400' : 'text-green-400'}">${vencido ? 'Vencido' : diasRestantes + 'd'}</td>
+            </tr>`;
+        }).join('');
 
         // ==================== HTML ====================
         let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">`;
@@ -146,7 +169,7 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        // Laboratorio (versión mejorada con acidez de azufre desde certificaciones)
+        // Laboratorio (versión completa con tabla de 5 filas)
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
@@ -154,7 +177,7 @@ export async function renderizarPanel(contenedor, rol) {
                 <table class="w-full text-xs">
                     <thead class="text-slate-400 border-b border-slate-700">
                         <tr>
-                            <th class="py-1 pr-2 text-left">Tanque</th>
+                            <th class="py-1 pr-2 text-left">Tanque / Línea</th>
                             <th class="py-1 pr-2 text-right">Conc.</th>
                             <th class="py-1 pr-2 text-right">NTU</th>
                             <th class="py-1 pr-2 text-right">Fe</th>
@@ -162,21 +185,7 @@ export async function renderizarPanel(contenedor, rol) {
                         </tr>
                     </thead>
                     <tbody class="text-slate-300">
-                        ${['TQ-3101','TQ-3102','TQ-3103','TQ-3104'].map(tq => {
-                            const cert = certPorTanque[tq];
-                            if (!cert) return `<tr><td class="py-1 pr-2 font-medium">${tq}</td><td colspan="4" class="py-1 text-slate-500">Sin certificación</td></tr>`;
-                            const vencimiento = new Date(cert.fecha_vigencia);
-                            const diasRestantes = Math.ceil((vencimiento - new Date()) / (1000*60*60*24));
-                            const vencido = diasRestantes < 0;
-                            return `
-                            <tr class="border-b border-slate-800 last:border-0">
-                                <td class="py-1 pr-2 font-medium">${tq}</td>
-                                <td class="py-1 pr-2 text-right">${cert.concentracion}%</td>
-                                <td class="py-1 pr-2 text-right">${cert.ntu ?? '--'}</td>
-                                <td class="py-1 pr-2 text-right">${cert.ppm_fe ?? '--'}</td>
-                                <td class="py-1 text-right ${vencido ? 'text-red-400' : 'text-green-400'}">${vencido ? 'Vencido' : diasRestantes + 'd'}</td>
-                            </tr>`;
-                        }).join('')}
+                        ${filasAcido}
                     </tbody>
                 </table>
             </div>
