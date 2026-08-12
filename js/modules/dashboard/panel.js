@@ -46,7 +46,7 @@ export async function renderizarPanel(contenedor, rol) {
             acidezPorTanque[row.tanque] = row.acidez;
         });
 
-        // ==================== CONSULTA OPTIMIZADA PARA CERTIFICACIONES DE ÁCIDO ====================
+        // ==================== CERTIFICACIONES DE ÁCIDO (5 puntos) ====================
         const puntosAcido = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'];
         const { data: certsAcidoReciente } = await supabase
             .from('certificaciones_acido')
@@ -76,100 +76,12 @@ export async function renderizarPanel(contenedor, rol) {
         }).join('');
 
         // ==================== HTML ====================
-        let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">`;
+        let html = '';
 
-        // Tarjeta Ácido con NTU
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">Ácido Sulfúrico</h3>
-            <p class="text-2xl font-bold">${ultimoAcido?.concentracion?.toFixed(2) ?? '--'} %</p>
-            <p class="text-xs text-slate-400">NTU: ${ultimoAcido?.turbidez_ntu?.toFixed(2) ?? '--'}</p>
-            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(colorSemaforo(ultimoAcido?.concentracion, UMBRALES.acido))}">${ultimoAcido?.concentracion ? '●' : 'Sin datos'}</span>
-        </div>`;
+        // ---- PRIMERA FILA: Laboratorio (1), Balance (2), pH (3) ----
+        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">`;
 
-        // Tarjeta pH unificada (5 puntos)
-        const phKeys = [
-            { nombre: 'caldera de acido', key: 'ph_caldera_acido' },
-            { nombre: 'calderin', key: 'ph_calderin' },
-            { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' },
-            { nombre: 'caldera sulfato', key: 'ph_caldera_sulfato' },
-            { nombre: 'tanque elevado', key: 'ph_tanque_elevado' }
-        ];
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400 mb-3">pH de Aguas</h3>
-            <div class="space-y-2">
-                ${phKeys.map(p => {
-                    const valor = ultimoPH[p.nombre];
-                    const umbral = UMBRALES[p.key] || null;
-                    const semaforo = colorSemaforo(valor, umbral);
-                    return `
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-slate-300">${p.nombre}</span>
-                        <span class="text-sm font-bold ${valor !== undefined ? 'text-white' : 'text-slate-500'}">${valor?.toFixed(2) ?? '--'}</span>
-                        <span class="inline-block w-3 h-3 rounded-full ${colorClase(semaforo)}" title="${semaforo}"></span>
-                    </div>`;
-                }).join('')}
-            </div>
-        </div>`;
-
-        // Tarjeta OTs Pendientes
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">OTs Pendientes</h3>
-            <p class="text-2xl font-bold">${pendientes}</p>
-            <span class="text-xs ${pendientes > 5 ? 'text-red-400' : 'text-green-400'}">${pendientes > 5 ? '⚠️ Atención' : '✅ Bajo control'}</span>
-        </div>`;
-
-        // Tarjeta Emisiones SO₂
-        const so2Val = ultimaEmision?.ppm_so2;
-        const so2Sem = colorSemaforo(so2Val, UMBRALES.so2);
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">Emisiones SO₂</h3>
-            <p class="text-2xl font-bold">${so2Val?.toFixed(1) ?? '--'} ppm</p>
-            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">${so2Val ? '●' : 'Sin datos'}</span>
-        </div>`;
-
-        html += `</div>`; // Fin cuadrícula superior
-
-        // ---- Fila inferior (3 tarjetas: Balance, Consumo, Laboratorio) ----
-        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
-
-        // Balance de Azufre + Fundición
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400">Balance de Azufre (hoy)</h3>
-            <div class="flex items-center justify-between mt-2">
-                <div>
-                    <p class="text-xs">Big Bags: <span class="font-bold">${bigBagsHoy}</span></p>
-                    <p class="text-xs">Azufre cons.: <span class="font-bold">${azufreConsumido.toFixed(1)} ton</span></p>
-                    <p class="text-xs">Ácido prod.: <span class="font-bold">${acidoProducido.toFixed(1)} ton</span></p>
-                    <p class="text-xs">Rendimiento: <span class="font-bold ${rendimiento >= 99.2 ? 'text-green-400' : 'text-yellow-400'}">${rendimiento.toFixed(1)}%</span></p>
-                    <p class="text-xs">Merma: <span class="font-bold text-red-400">${merma.toFixed(1)}%</span></p>
-                </div>
-                <div class="relative w-16 h-16">
-                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#374151" stroke-width="3" />
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="${rendimiento >= 99.2 ? '#22c55e' : '#eab308'}" stroke-width="3" stroke-dasharray="${Math.min(rendimiento, 100).toFixed(0)}, 100" />
-                    </svg>
-                    <span class="absolute inset-0 flex items-center justify-center text-xs font-bold">${Math.min(rendimiento, 100).toFixed(0)}%</span>
-                </div>
-            </div>
-        </div>`;
-
-        // Consumo de Agua
-        html += `
-        <div class="bg-slate-900 p-4 rounded border border-slate-700">
-            <h3 class="text-sm text-slate-400 mb-2">Consumo de Agua (último registro, m³)</h3>
-            <div class="grid grid-cols-2 gap-1 text-sm">
-                ${['general','planta acido','caldera de sulfato','caldera acido','planta sulfato'].map(tipo => `
-                    <div><span class="text-slate-300 capitalize">${tipo}:</span> <span class="font-bold">${ultimoConsumo[tipo]?.toFixed(1) ?? '--'}</span></div>
-                `).join('')}
-            </div>
-        </div>`;
-
-        // Laboratorio (versión completa con tabla de 5 filas)
+        // 1. Laboratorio (versión completa con tabla de 5 filas)
         html += `
         <div class="bg-slate-900 p-4 rounded border border-slate-700">
             <h3 class="text-sm text-slate-400 mb-2">🔬 Laboratorio</h3>
@@ -200,7 +112,98 @@ export async function renderizarPanel(contenedor, rol) {
             </div>
         </div>`;
 
-        html += `</div>`; // Fin fila inferior
+        // 2. Balance de Azufre + Fundición
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400">Balance de Azufre (hoy)</h3>
+            <div class="flex items-center justify-between mt-2">
+                <div>
+                    <p class="text-xs">Big Bags: <span class="font-bold">${bigBagsHoy}</span></p>
+                    <p class="text-xs">Azufre cons.: <span class="font-bold">${azufreConsumido.toFixed(1)} ton</span></p>
+                    <p class="text-xs">Ácido prod.: <span class="font-bold">${acidoProducido.toFixed(1)} ton</span></p>
+                    <p class="text-xs">Rendimiento: <span class="font-bold ${rendimiento >= 99.2 ? 'text-green-400' : 'text-yellow-400'}">${rendimiento.toFixed(1)}%</span></p>
+                    <p class="text-xs">Merma: <span class="font-bold text-red-400">${merma.toFixed(1)}%</span></p>
+                </div>
+                <div class="relative w-16 h-16">
+                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#374151" stroke-width="3" />
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="${rendimiento >= 99.2 ? '#22c55e' : '#eab308'}" stroke-width="3" stroke-dasharray="${Math.min(rendimiento, 100).toFixed(0)}, 100" />
+                    </svg>
+                    <span class="absolute inset-0 flex items-center justify-center text-xs font-bold">${Math.min(rendimiento, 100).toFixed(0)}%</span>
+                </div>
+            </div>
+        </div>`;
+
+        // 3. pH de Aguas (unificada con 5 puntos)
+        const phKeys = [
+            { nombre: 'caldera de acido', key: 'ph_caldera_acido' },
+            { nombre: 'calderin', key: 'ph_calderin' },
+            { nombre: 'torre enfriamiento', key: 'ph_torre_enfriamiento' },
+            { nombre: 'caldera sulfato', key: 'ph_caldera_sulfato' },
+            { nombre: 'tanque elevado', key: 'ph_tanque_elevado' }
+        ];
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400 mb-3">pH de Aguas</h3>
+            <div class="space-y-2">
+                ${phKeys.map(p => {
+                    const valor = ultimoPH[p.nombre];
+                    const umbral = UMBRALES[p.key] || null;
+                    const semaforo = colorSemaforo(valor, umbral);
+                    return `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-slate-300">${p.nombre}</span>
+                        <span class="text-sm font-bold ${valor !== undefined ? 'text-white' : 'text-slate-500'}">${valor?.toFixed(2) ?? '--'}</span>
+                        <span class="inline-block w-3 h-3 rounded-full ${colorClase(semaforo)}" title="${semaforo}"></span>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+
+        html += `</div>`; // Fin primera fila (3 columnas)
+
+        // ---- SEGUNDA FILA: Ácido, OTs, Emisiones, Consumo (4 columnas) ----
+        html += `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">`;
+
+        // Tarjeta Ácido con NTU
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400">Ácido Sulfúrico</h3>
+            <p class="text-2xl font-bold">${ultimoAcido?.concentracion?.toFixed(2) ?? '--'} %</p>
+            <p class="text-xs text-slate-400">NTU: ${ultimoAcido?.turbidez_ntu?.toFixed(2) ?? '--'}</p>
+            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(colorSemaforo(ultimoAcido?.concentracion, UMBRALES.acido))}">${ultimoAcido?.concentracion ? '●' : 'Sin datos'}</span>
+        </div>`;
+
+        // Tarjeta OTs Pendientes
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400">OTs Pendientes</h3>
+            <p class="text-2xl font-bold">${pendientes}</p>
+            <span class="text-xs ${pendientes > 5 ? 'text-red-400' : 'text-green-400'}">${pendientes > 5 ? '⚠️ Atención' : '✅ Bajo control'}</span>
+        </div>`;
+
+        // Tarjeta Emisiones SO₂
+        const so2Val = ultimaEmision?.ppm_so2;
+        const so2Sem = colorSemaforo(so2Val, UMBRALES.so2);
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400">Emisiones SO₂</h3>
+            <p class="text-2xl font-bold">${so2Val?.toFixed(1) ?? '--'} ppm</p>
+            <span class="inline-block px-2 py-1 text-xs rounded ${colorClase(so2Sem)}">${so2Val ? '●' : 'Sin datos'}</span>
+        </div>`;
+
+        // Consumo de Agua
+        html += `
+        <div class="bg-slate-900 p-4 rounded border border-slate-700">
+            <h3 class="text-sm text-slate-400 mb-2">Consumo de Agua (último registro, m³)</h3>
+            <div class="grid grid-cols-2 gap-1 text-sm">
+                ${['general','planta acido','caldera de sulfato','caldera acido','planta sulfato'].map(tipo => `
+                    <div><span class="text-slate-300 capitalize">${tipo}:</span> <span class="font-bold">${ultimoConsumo[tipo]?.toFixed(1) ?? '--'}</span></div>
+                `).join('')}
+            </div>
+        </div>`;
+
+        html += `</div>`; // Fin segunda fila
 
         contenedor.innerHTML = html;
 
