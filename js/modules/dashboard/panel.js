@@ -6,10 +6,10 @@ export async function renderizarPanel(contenedor, rol) {
     try {
         const hoy = new Date().toISOString().split('T')[0];
 
-        // Consultas en paralelo (sin certificaciones_acido aquí)
+        // Consultas en paralelo (sin certificaciones_acido ni azufre aquí)
         const [
             acidoRes, phRes, otRes, consumoRes, emisionesRes, fundicionRes,
-            acidezAzufreRes, prodHoyRes
+            prodHoyRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(60),
@@ -17,7 +17,6 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(10),
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
-            supabase.rpc('ultima_acidez_azufre'),
             supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
         ]);
 
@@ -38,13 +37,6 @@ export async function renderizarPanel(contenedor, rol) {
         const factorConversion = 3.0;
         const rendimiento = azufreConsumido > 0 ? (acidoProducido / (azufreConsumido * factorConversion)) * 100 : 0;
         const merma = 100 - rendimiento;
-
-        // Acidez de azufre
-        const acidezAzufreData = acidezAzufreRes.data || [];
-        const acidezPorTanque = {};
-        acidezAzufreData.forEach(row => {
-            acidezPorTanque[row.tanque] = row.acidez;
-        });
 
         // ==================== CERTIFICACIONES DE ÁCIDO (5 puntos) ====================
         const puntosAcido = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-1201'];
@@ -75,6 +67,23 @@ export async function renderizarPanel(contenedor, rol) {
             </tr>`;
         }).join('');
 
+        // ==================== CERTIFICACIONES DE AZUFRE (5 puntos) ====================
+        const puntosAzufre = ['TQ-4302A','TQ-4302B','TQ-4302C','TQ-4302D','HORNO-AZUFRE'];
+        const { data: certsAzufreReciente } = await supabase
+            .from('certificaciones_azufre')
+            .select('tanque, acidez')
+            .order('fecha_analisis', { ascending: false })
+            .limit(50);
+
+        const acidezPorTanque = {};
+        (certsAzufreReciente || []).forEach(row => {
+            if (!acidezPorTanque[row.tanque]) acidezPorTanque[row.tanque] = row.acidez;
+        });
+
+        const filasAzufre = puntosAzufre.map(punto =>
+            `<div>TQ-${punto.replace('TQ-','')}: <span class="font-bold">${acidezPorTanque[punto]?.toFixed(4) ?? '--'}%</span></div>`
+        ).join('');
+
         // ==================== HTML ====================
         let html = '';
 
@@ -104,10 +113,7 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="mt-3 pt-3 border-t border-slate-700">
                 <h4 class="text-xs font-semibold text-slate-400 mb-1">Acidez de Azufre</h4>
                 <div class="grid grid-cols-2 gap-1 text-xs text-slate-300">
-                    <div>TQ-4302A: <span class="font-bold">${acidezPorTanque['TQ-4302A']?.toFixed(4) ?? '--'}%</span></div>
-                    <div>TQ-4302B: <span class="font-bold">${acidezPorTanque['TQ-4302B']?.toFixed(4) ?? '--'}%</span></div>
-                    <div>TQ-4302C: <span class="font-bold">${acidezPorTanque['TQ-4302C']?.toFixed(4) ?? '--'}%</span></div>
-                    <div>TQ-4302D: <span class="font-bold">${acidezPorTanque['TQ-4302D']?.toFixed(4) ?? '--'}%</span></div>
+                    ${filasAzufre}
                 </div>
             </div>
         </div>`;
