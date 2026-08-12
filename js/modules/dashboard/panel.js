@@ -47,7 +47,7 @@ export async function renderizarPanel(contenedor, rol) {
         });
 
         // ==================== CERTIFICACIONES DE ÁCIDO (5 puntos) ====================
-        const puntosAcido = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-ACIDO'];
+        const puntosAcido = ['TQ-3101','TQ-3102','TQ-3103','TQ-3104','LINEA-1201'];
         const { data: certsAcidoReciente } = await supabase
             .from('certificaciones_acido')
             .select('*')
