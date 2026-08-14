@@ -1,4 +1,4 @@
-// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral, visitante
+// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral, OneSignal
 import { supabase } from './supabase-client.js';
 import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
@@ -8,7 +8,7 @@ import { iniciarPresencia, detenerPresencia } from './modules/presencia.js';
 // ocp Obtener el rol del usuario actual
 async function obtenerRol() {
     const { data: { user } } = await supabase.auth.getUser();
-    return user?.user_metadata?.rol || 'visitante';
+    return user?.user_metadata?.rol || 'operador';
 }
 
 // ocp Mostrar u ocultar botones del sidebar según el rol
@@ -27,15 +27,6 @@ async function construirSidebar(rol) {
         usuarios:      document.getElementById('btn-nav-usuarios'),
         ssl:           document.getElementById('btn-nav-ssl')
     };
-
-    // Si es visitante, ocultar todos los botones
-    if (rol === 'visitante') {
-        for (const btn of Object.values(botones)) {
-            if (btn) btn.classList.add('hidden');
-        }
-        return;
-    }
-
     const visibilidad = {
         dashboard:     true,
         biblioteca:    true,
@@ -95,36 +86,6 @@ function abrirCambioPassword() {
     });
 }
 
-// ocp Cargar el panel de indicadores para visitantes (sin sesión)
-async function cargarDashboardVisitante() {
-    const sidebarEl = document.getElementById('sidebar');
-    const footerEl = document.getElementById('sidebar-footer');
-
-    if (sidebarEl) sidebarEl.classList.add('hidden');
-
-    const appContent = document.getElementById('app-content');
-    if (appContent) {
-        appContent.innerHTML = '<p class="text-slate-400">Cargando panel de indicadores...</p>';
-    }
-
-    try {
-        const dashboard = await import('./modules/dashboard/index.js');
-        await dashboard.cargarDashboard('visitante');
-    } catch (err) {
-        console.error(err);
-        if (appContent) appContent.innerHTML = '<p class="text-red-500">Error al cargar el panel.</p>';
-    }
-
-    // Agregar botón de iniciar sesión flotante
-    const btnLogin = document.createElement('button');
-    btnLogin.className = 'fixed top-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg';
-    btnLogin.textContent = 'Iniciar Sesión';
-    btnLogin.addEventListener('click', () => {
-        mostrarLogin();
-    });
-    document.body.appendChild(btnLogin);
-}
-
 // ocp Inicio de la aplicación
 document.addEventListener('DOMContentLoaded', async () => {
     const sidebarEl = document.getElementById('sidebar');
@@ -134,8 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-        // No hay sesión: cargar panel para visitantes
-        await cargarDashboardVisitante();
+        mostrarLogin();
         return;
     }
 
@@ -143,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
         await supabase.auth.signOut();
-        await cargarDashboardVisitante();
+        mostrarLogin();
         return;
     }
 
@@ -197,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnRutinas = document.getElementById('btn-nav-rutinas');
 
     if (btnDashboard && !btnDashboard.classList.contains('hidden')) {
-        btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard(rol)));
+        btnDashboard.addEventListener('click', () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard()));
     }
     if (btnBiblioteca && !btnBiblioteca.classList.contains('hidden')) {
         btnBiblioteca.addEventListener('click', () => import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca()));
@@ -255,24 +215,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Obtener y guardar el playerId de OneSignal
+    // 8. Obtener y guardar el playerId de OneSignal (localStorage + tabla dispositivos)
     try {
         if (typeof OneSignal !== 'undefined') {
             OneSignal.getUserId().then(async playerId => {
                 if (playerId && user) {
                     localStorage.setItem('playerId', playerId);
+                    
+                    // Guardar en la tabla dispositivos para notificaciones por rol
                     const { error } = await supabase.from('dispositivos').upsert({
                         usuario_id: user.id,
                         player_id: playerId
                     });
-                    if (!error) console.log('Dispositivo registrado:', playerId);
+                    
+                    if (error) {
+                        console.warn('No se pudo registrar dispositivo:', error.message);
+                    } else {
+                        console.log('Dispositivo registrado:', playerId);
+                    }
                 }
-            }).catch(() => {});
+            }).catch(err => console.log('OneSignal no disponible aún:', err));
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log('OneSignal no cargado');
+    }
 
     // 9. Cargar módulo inicial (Panel de Indicadores)
-    import('./modules/dashboard/index.js').then(m => m.cargarDashboard(rol)).catch(err => {
+    import('./modules/dashboard/index.js').then(m => m.cargarDashboard()).catch(err => {
         console.error(err);
         document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
     });
