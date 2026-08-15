@@ -1,4 +1,4 @@
-// ocp Formulario para emitir un nuevo PTS/ART – con notificaciones push
+// ocp Formulario para emitir un nuevo PTS/ART – con notificación push
 import { supabase } from '../../supabase-client.js';
 import { enviarPushARoles } from '../../push.js';
 
