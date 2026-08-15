@@ -1,4 +1,4 @@
-// ocp Submódulo de Reporte de Novedades – con notificaciones push
+// ocp Submódulo de Reporte de Novedades – con notificación push
 import { supabase } from '../../supabase-client.js';
 import { enviarPushARoles } from '../../push.js';
 
@@ -118,8 +118,6 @@ export async function renderizarNovedades(contenedor, rol) {
             }
         } else {
             alert('Novedad registrada.');
-            await enviarPushARoles(['admin', 'supervisor'],
-                `📸 Nueva novedad reportada en ${tag}`);
         }
 
         document.getElementById('form-novedad').reset();
