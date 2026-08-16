@@ -257,8 +257,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 8. Obtener y guardar el playerId de OneSignal (localStorage + tabla dispositivos)
     try {
-        if (typeof OneSignal !== 'undefined') {
-            OneSignal.getUserId().then(async playerId => {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                const playerId = await OneSignal.getUserId();
                 if (playerId && user) {
                     localStorage.setItem('playerId', playerId);
 
@@ -274,8 +276,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.log('Dispositivo registrado:', playerId);
                     }
                 }
-            }).catch(() => {});
-        }
+            } catch (e) {
+                console.warn('Error obteniendo playerId:', e.message);
+            }
+        });
     } catch (e) {}
 
     // 9. Cargar módulo inicial (Panel de Indicadores)
