@@ -86,8 +86,13 @@ export async function renderizarNovedades(contenedor, rol) {
         const { error } = await supabase.from('novedades').insert([payload]);
         if (error) return alert('Error al guardar novedad: ' + error.message);
 
+        // Notificación push en ambos casos
         if (generarOT) {
-            const { data: lastOT } = await supabase.from('ordenes_trabajo').select('numero_ot').order('created_at', { ascending: false }).limit(1);
+            const { data: lastOT } = await supabase.from('ordenes_trabajo')
+                .select('numero_ot')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
             let nextNum = 1;
             if (lastOT?.length) {
                 const last = parseInt(lastOT[0].numero_ot.split('-')[1]);
@@ -112,12 +117,18 @@ export async function renderizarNovedades(contenedor, rol) {
                 alert('Novedad guardada, pero error al crear OT: ' + otError.message);
             } else {
                 alert(`Novedad registrada y OT ${numero_ot} creada.`);
-                // Notificar a supervisores, admin, inspector y ejecutor
-                await enviarPushARoles(['admin', 'supervisor', 'inspector_ssl', 'ejecutor'],
-                    `🔧 Nueva OT ${numero_ot} creada: ${tag}`);
+                await enviarPushARoles(
+                    ['admin', 'supervisor', 'inspector_ssl', 'ejecutor'],
+                    `🔧 Nueva OT ${numero_ot} creada: ${tag}`
+                );
             }
         } else {
             alert('Novedad registrada.');
+            // Notificación a supervisores y coordinación (admin)
+            await enviarPushARoles(
+                ['admin', 'supervisor'],
+                `📸 Nueva novedad reportada en ${tag}`
+            );
         }
 
         document.getElementById('form-novedad').reset();
@@ -130,7 +141,11 @@ export async function renderizarNovedades(contenedor, rol) {
 
 async function cargarListaNovedades() {
     const container = document.getElementById('lista-novedades');
-    const { data, error } = await supabase.from('novedades').select('*').order('fecha_novedad', { ascending: false }).limit(10);
+    const { data, error } = await supabase.from('novedades')
+        .select('*')
+        .order('fecha_novedad', { ascending: false })
+        .limit(10);
+
     if (error) {
         container.innerHTML = '<p class="text-red-500">Error al cargar novedades.</p>';
         return;
@@ -139,6 +154,7 @@ async function cargarListaNovedades() {
         container.innerHTML = '<p class="text-slate-400">Sin novedades recientes.</p>';
         return;
     }
+
     container.innerHTML = data.map(n => `
         <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
             <div class="flex justify-between text-xs text-slate-400 mb-1">
