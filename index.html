@@ -116,15 +116,6 @@
 
     <script type="module" src="js/main.js"></script>
 
-    <!-- Registro del Service Worker -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('SW registrado:', reg.scope))
-          .catch(err => console.log('SW falló:', err));
-      }
-    </script>
-
     <!-- OneSignal -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"></script>
     <script>
