@@ -255,17 +255,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Obtener y guardar el playerId de OneSignal
+    // 8. Obtener y guardar el playerId de OneSignal (localStorage + tabla dispositivos)
     try {
         if (typeof OneSignal !== 'undefined') {
             OneSignal.getUserId().then(async playerId => {
                 if (playerId && user) {
                     localStorage.setItem('playerId', playerId);
+
+                    // Guardar en la tabla dispositivos para notificaciones por rol
                     const { error } = await supabase.from('dispositivos').upsert({
                         usuario_id: user.id,
                         player_id: playerId
                     });
-                    if (!error) console.log('Dispositivo registrado:', playerId);
+
+                    if (error) {
+                        console.warn('No se pudo registrar dispositivo:', error.message);
+                    } else {
+                        console.log('Dispositivo registrado:', playerId);
+                    }
                 }
             }).catch(() => {});
         }
