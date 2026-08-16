@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function(OneSignal) {
             try {
-                const playerId = await OneSignal.getUserId();
+                const playerId = OneSignal.User?.PushSubscription?.id;
                 if (playerId && user) {
                     localStorage.setItem('playerId', playerId);
 
@@ -275,6 +275,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         console.log('Dispositivo registrado:', playerId);
                     }
+                } else {
+                    console.warn('No se pudo obtener playerId. ¿El usuario aceptó las notificaciones?');
                 }
             } catch (e) {
                 console.warn('Error obteniendo playerId:', e.message);
