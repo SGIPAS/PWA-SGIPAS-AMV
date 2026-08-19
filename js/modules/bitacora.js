@@ -10,7 +10,7 @@ export async function cargarBitacora() {
     const { data: { user } } = await supabase.auth.getUser();
     const rol = user?.user_metadata?.rol;
     if (!['admin', 'supervisor'].includes(rol)) {
-        contenedor.innerHTML = `<div class="flex justify-center items-center h-full"><p class="text-red-500 text-xl">Acceso denegado. Solo supervisores pueden usar esta función.</p></div>`;
+        contenedor.innerHTML = `<div class="flex justify-center items-center h-full"><p class="text-red-500 text-xl">Acceso denegado. Solo administradores y supervisores pueden usar esta función.</p></div>`;
         return;
     }
 
