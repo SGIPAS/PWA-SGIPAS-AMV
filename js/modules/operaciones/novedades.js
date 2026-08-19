@@ -1,4 +1,4 @@
-// ocp Submódulo de Reporte de Novedades – con notificación push
+// ocp Submódulo de Reporte de Novedades – con notificación push y anulación de registros
 import { supabase } from '../../supabase-client.js';
 import { enviarPushARoles } from '../../push.js';
 
@@ -133,16 +133,17 @@ export async function renderizarNovedades(contenedor, rol) {
 
         document.getElementById('form-novedad').reset();
         preview.classList.add('hidden');
-        cargarListaNovedades();
+        cargarListaNovedades(rol);
     });
 
-    await cargarListaNovedades();
+    await cargarListaNovedades(rol);
 }
 
-async function cargarListaNovedades() {
+async function cargarListaNovedades(rol) {
     const container = document.getElementById('lista-novedades');
     const { data, error } = await supabase.from('novedades')
         .select('*')
+        .eq('anulado', false)  // Solo activas
         .order('fecha_novedad', { ascending: false })
         .limit(10);
 
@@ -163,6 +164,40 @@ async function cargarListaNovedades() {
             </div>
             <p class="text-sm text-slate-300">${n.descripcion}</p>
             ${n.foto_url ? `<img src="${supabase.storage.from('biblioteca').getPublicUrl(n.foto_url).data.publicUrl}" class="mt-2 max-h-24 rounded">` : ''}
+            ${rol === 'admin' ? `
+            <div class="mt-2 text-right">
+                <button class="btn-anular bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded transition" data-id="${n.id}">Anular</button>
+            </div>` : ''}
         </div>
     `).join('');
+
+    // Evento para botones de anular (solo admin)
+    document.querySelectorAll('.btn-anular').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            const motivo = prompt('Ingrese el motivo de la anulación (obligatorio):');
+            if (!motivo || motivo.trim() === '') {
+                alert('Debe ingresar un motivo para anular el registro.');
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            const { error: updateError } = await supabase.from('novedades')
+                .update({
+                    anulado: true,
+                    motivo_anulacion: motivo.trim(),
+                    anulado_por: user.id,
+                    anulado_en: new Date().toISOString()
+                })
+                .eq('id', id);
+
+            if (updateError) {
+                alert('Error al anular la novedad: ' + updateError.message);
+                return;
+            }
+
+            alert('Novedad anulada correctamente.');
+            cargarListaNovedades(rol);
+        });
+    });
 }
