@@ -1,28 +1,32 @@
-// ocp Módulo de notificaciones push – envío a múltiples dispositivos por rol
+// ocp Módulo de notificaciones push – envío a múltiples dispositivos por rol usando RPC
 import { supabase } from './supabase-client.js';
 
 export async function enviarPushARoles(roles, mensaje) {
     if (!roles || roles.length === 0 || !mensaje) return;
 
-    const { data: perfiles } = await supabase
-        .from('perfiles')
-        .select('id')
-        .in('rol', roles);
-    if (!perfiles?.length) return;
+    try {
+        const { error } = await supabase.rpc('enviar_notificacion_roles', {
+            roles,
+            mensaje
+        });
 
-    const usuarioIds = perfiles.map(p => p.id);
+        if (error) {
+            console.error('Error al enviar push:', error.message);
+        }
+    } catch (err) {
+        console.error('Error en enviarPushARoles:', err);
+    }
+}
 
-    const { data: dispositivos } = await supabase
-        .from('dispositivos')
-        .select('player_id')
-        .in('usuario_id', usuarioIds);
-    if (!dispositivos?.length) return;
-
-    const playerIds = [...new Set(dispositivos.map(d => d.player_id))];
+// Compatibilidad por si algún módulo antiguo aún usa la versión singular
+export async function enviarPush(mensaje) {
+    const playerId = localStorage.getItem('playerId');
+    if (!playerId || !mensaje) return;
 
     try {
-        const { error } = await supabase.functions.invoke('notificar', {
-            body: { playerIds, mensaje }
+        const { error } = await supabase.rpc('enviar_notificacion_roles', {
+            roles: ['admin'], // No se puede enviar a un playerId concreto con esta función; se mantiene para no romper imports
+            mensaje
         });
         if (error) console.error('Error al enviar push:', error);
     } catch (err) {
