@@ -1,4 +1,4 @@
-// ocp Panel de Control – semáforos, KPIs, balance de azufre (con pH unificado, laboratorio mejorado, compacto HMI)
+// ocp Panel de Control – semáforos, KPIs, balance de azufre, inventario compacto HMI
 import { supabase } from '../../supabase-client.js';
 import { UMBRALES, colorSemaforo, colorClase } from './utils.js';
 
@@ -9,7 +9,7 @@ export async function renderizarPanel(contenedor, rol) {
         // Consultas en paralelo
         const [
             acidoRes, phRes, otRes, consumoRes, emisionesRes, fundicionRes,
-            acidezAzufreRes, prodHoyRes
+            acidezAzufreRes, prodHoyRes, stockRes
         ] = await Promise.all([
             supabase.from('analisis_acido').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('ph_aguas').select('*').order('created_at', { ascending: false }).limit(60),
@@ -18,7 +18,8 @@ export async function renderizarPanel(contenedor, rol) {
             supabase.from('emisiones_so2').select('*').order('created_at', { ascending: false }).limit(1),
             supabase.from('fundicion_diaria').select('*').order('fecha_registro', { ascending: false }).limit(1),
             supabase.rpc('ultima_acidez_azufre'),
-            supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy)
+            supabase.from('produccion_diaria').select('toneladas').eq('fecha', hoy),
+            supabase.rpc('stock_actual_acido')
         ]);
 
         const ultimoAcido = acidoRes.data?.[0];
@@ -74,6 +75,17 @@ export async function renderizarPanel(contenedor, rol) {
                 <td class="py-1 text-right ${vencido ? 'text-red-400' : 'text-green-400'}">${vencido ? 'Vencido' : diasRestantes + 'd'}</td>
             </tr>`;
         }).join('');
+
+        // ==================== DATOS DE INVENTARIO ====================
+        const stockData = stockRes.data || [];
+        const stockPorTanque = {};
+        let stockTotal = 0;
+        if (stockData.length > 0) {
+            stockTotal = parseFloat(stockData[0].total_general || 0);
+            stockData.forEach(s => {
+                stockPorTanque[s.tanque] = parseFloat(s.stock || 0);
+            });
+        }
 
         // ==================== HTML ====================
         let html = '';
@@ -163,8 +175,8 @@ export async function renderizarPanel(contenedor, rol) {
 
         html += `</div>`; // Fin primera fila
 
-        // ---- SEGUNDA FILA: Ácido, OTs, Emisiones, Consumo ----
-        html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-3">`;
+        // ---- SEGUNDA FILA: Ácido, OTs, Emisiones, Consumo, Inventario ----
+        html += `<div class="grid grid-cols-2 md:grid-cols-5 gap-3">`;
 
         // Tarjeta Ácido
         const acidoVal = ultimoAcido?.concentracion;
@@ -214,6 +226,21 @@ export async function renderizarPanel(contenedor, rol) {
             <div class="grid grid-cols-2 gap-x-2 mt-1 text-[10px] text-slate-400">
                 <div>Planta Ácido: <span class="font-bold text-slate-300">${ultimoConsumo['planta acido']?.toFixed(1) ?? '--'}</span></div>
                 <div>Caldera Sulfato: <span class="font-bold text-slate-300">${ultimoConsumo['caldera de sulfato']?.toFixed(1) ?? '--'}</span></div>
+            </div>
+        </div>`;
+
+        // Tarjeta Inventario de Ácido (stock general)
+        html += `
+        <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 shadow-md">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs uppercase tracking-wider text-slate-400">Inventario Ácido</h3>
+                <span class="text-slate-500">📦</span>
+            </div>
+            <p class="text-2xl md:text-3xl font-bold text-white mt-1">${stockTotal.toFixed(2)}<span class="text-sm font-medium text-slate-400">ton</span></p>
+            <div class="grid grid-cols-2 gap-x-2 mt-1 text-[10px] text-slate-400">
+                ${Object.entries(stockPorTanque).map(([tanque, stock]) => `
+                    <div>${tanque}: <span class="font-bold text-slate-300">${stock.toFixed(2)}</span></div>
+                `).join('')}
             </div>
         </div>`;
 
