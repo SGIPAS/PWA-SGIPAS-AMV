@@ -1,6 +1,6 @@
 // ocp Certificación de Ácido
 import { supabase } from '../../supabase-client.js';
-import { puedeRegistrar, notificarATodos } from './utils.js';
+import { puedeRegistrar, notificarLaboratorio } from './utils.js';
 import { renderizarListaCertificaciones } from './lista.js';
 
 export async function renderizarCertAcido(contenedor, rol) {
@@ -87,7 +87,7 @@ export async function renderizarCertAcido(contenedor, rol) {
             alert('Certificaciones guardadas correctamente.');
             document.getElementById('form-cert-acido').reset();
             renderizarListaCertificaciones('certificaciones_acido', 'lista-cert-acido', ['concentracion','ntu','ppm_fe']);
-            await notificarATodos('Resultado de Laboratorio', `Certificación de ácido: ${inserciones.map(i => i.tanque).join(', ')}`);
+            await notificarLaboratorio('Resultado de Laboratorio', `Certificación de ácido: ${inserciones.map(i => i.tanque).join(', ')}`);
         });
     }
 
