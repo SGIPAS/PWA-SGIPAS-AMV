@@ -1,6 +1,6 @@
 // ocp Disposición de Ácido
 import { supabase } from '../../supabase-client.js';
-import { puedeRegistrar, notificarATodos } from './utils.js';
+import { puedeRegistrar, notificarLaboratorio } from './utils.js';
 
 export async function renderizarDispAcido(contenedor, rol) {
     const puede = puedeRegistrar(rol);
@@ -60,7 +60,7 @@ export async function renderizarDispAcido(contenedor, rol) {
             document.getElementById('form-disp-acido').reset();
             actualizarSaldoDisp();
             cargarListaDispAcido();
-            await notificarATodos('Disposición de Ácido', 'Se ha registrado un nuevo movimiento de disposición de ácido.');
+            await notificarLaboratorio('Disposición de Ácido', 'Se ha registrado un nuevo movimiento de disposición de ácido.');
         });
     }
 }
@@ -77,7 +77,7 @@ async function cargarListaDispAcido() {
     const container = document.getElementById('lista-disp-acido');
     const { data, error } = await supabase.from('disposicion_acido')
         .select('*')
-        .eq('anulado', false) // solo activos
+        .eq('anulado', false)
         .order('fecha', { ascending: false })
         .limit(10);
     if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
