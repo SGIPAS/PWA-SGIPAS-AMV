@@ -8,6 +8,7 @@ export async function renderizarListaCertificaciones(tabla, contenedorId, campos
     const { data, error } = await supabase
         .from(tabla)
         .select('*')
+        .eq('anulado', false)
         .order('created_at', { ascending: false })
         .limit(10);
 
