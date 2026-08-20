@@ -41,14 +41,15 @@ async function construirSidebar(rol) {
         mantenimiento: ['admin', 'supervisor', 'ejecutor'].includes(rol),
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
-        reportes:      ['admin', 'supervisor'].includes(rol),
+        reportes:      ['admin', 'supervisor', 'directivos'].includes(rol),
         inventario:    ['admin', 'supervisor', 'operador'].includes(rol),
         disposicion:   ['admin', 'supervisor', 'operador'].includes(rol),
         laboratorio:   ['admin', 'analista'].includes(rol),
         rutinas:       ['admin', 'supervisor', 'operador'].includes(rol),
         usuarios:      rol === 'admin',
-        ssl:           ['admin', 'inspector_ssl'].includes(rol)
+        ssl:           ['admin', 'inspector_ssl', 'directivos'].includes(rol)
     };
+
     for (const [key, btn] of Object.entries(botones)) {
         if (btn) btn.classList.toggle('hidden', !visibilidad[key]);
     }
