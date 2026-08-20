@@ -1,6 +1,6 @@
 // ocp Certificación de Agua Industrial
 import { supabase } from '../../supabase-client.js';
-import { puedeRegistrar, notificarATodos } from './utils.js';
+import { puedeRegistrar, notificarLaboratorio } from './utils.js';
 import { renderizarListaCertificaciones } from './lista.js';
 
 export async function renderizarCertAgua(contenedor, rol) {
@@ -108,8 +108,8 @@ export async function renderizarCertAgua(contenedor, rol) {
 
             alert('Certificaciones de agua guardadas.');
             document.getElementById('form-cert-agua').reset();
-            renderizarListaCertificaciones('certificaciones_agua', 'lista-cert-agua', ['ph','conductividad']);
-            await notificarATodos('Resultado de Laboratorio', `Certificación de agua: ${inserciones.map(i => i.punto_muestreo).join(', ')}`);
+            await renderizarListaCertificaciones('certificaciones_agua', 'lista-cert-agua', ['ph','conductividad']);
+            await notificarLaboratorio('Resultado de Laboratorio', `Certificación de agua: ${inserciones.map(i => i.punto_muestreo).join(', ')}`);
         });
     }
 
