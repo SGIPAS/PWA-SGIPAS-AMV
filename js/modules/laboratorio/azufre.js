@@ -1,6 +1,6 @@
 // ocp Certificación de Azufre
 import { supabase } from '../../supabase-client.js';
-import { puedeRegistrar, notificarATodos } from './utils.js';
+import { puedeRegistrar, notificarLaboratorio } from './utils.js';
 import { renderizarListaCertificaciones } from './lista.js';
 
 export async function renderizarCertAzufre(contenedor, rol) {
@@ -78,8 +78,8 @@ export async function renderizarCertAzufre(contenedor, rol) {
 
             alert('Certificaciones de azufre guardadas.');
             document.getElementById('form-cert-azufre').reset();
-            renderizarListaCertificaciones('certificaciones_azufre', 'lista-cert-azufre', ['acidez']);
-            await notificarATodos('Resultado de Laboratorio', `Acidez de azufre: ${inserciones.map(i => i.tanque).join(', ')}`);
+            await renderizarListaCertificaciones('certificaciones_azufre', 'lista-cert-azufre', ['acidez']);
+            await notificarLaboratorio('Resultado de Laboratorio', `Acidez de azufre: ${inserciones.map(i => i.tanque).join(', ')}`);
         });
     }
 
