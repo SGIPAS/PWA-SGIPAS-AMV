@@ -86,7 +86,7 @@ export async function renderizarCertAcido(contenedor, rol) {
 
             alert('Certificaciones guardadas correctamente.');
             document.getElementById('form-cert-acido').reset();
-            renderizarListaCertificaciones('certificaciones_acido', 'lista-cert-acido', ['concentracion','ntu','ppm_fe']);
+            await renderizarListaCertificaciones('certificaciones_acido', 'lista-cert-acido', ['concentracion','ntu','ppm_fe']);
             await notificarLaboratorio('Resultado de Laboratorio', `Certificación de ácido: ${inserciones.map(i => i.tanque).join(', ')}`);
         });
     }
