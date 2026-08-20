@@ -28,7 +28,6 @@ async function construirSidebar(rol) {
         ssl:           document.getElementById('btn-nav-ssl')
     };
 
-    // Si es visitante, ocultar todos los botones
     if (rol === 'visitante') {
         for (const btn of Object.values(botones)) {
             if (btn) btn.classList.add('hidden');
@@ -115,7 +114,6 @@ async function cargarDashboardVisitante() {
         if (appContent) appContent.innerHTML = '<p class="text-red-500">Error al cargar el panel.</p>';
     }
 
-    // Agregar botón de iniciar sesión flotante
     const btnLogin = document.createElement('button');
     btnLogin.className = 'fixed top-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg';
     btnLogin.textContent = 'Iniciar Sesión';
@@ -134,7 +132,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-        // No hay sesión: cargar panel para visitantes
         await cargarDashboardVisitante();
         return;
     }
@@ -150,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rol = user.user_metadata?.rol || 'operador';
     const userName = user.user_metadata?.nombre_completo || user.email;
 
-    // 3. Mostrar sidebar y aplicar restricciones
+    // 3. Mostrar sidebar
     if (sidebarEl) {
         sidebarEl.classList.remove('hidden');
         if (window.innerWidth < 768) {
@@ -162,7 +159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await construirSidebar(rol);
     mostrarInfoUsuario();
 
-    // 4. Footer del sidebar: solo cerrar sesión y presencia
+    // 4. Footer del sidebar
     if (footerEl) {
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600 mt-4';
@@ -227,7 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnDisposicion.addEventListener('click', () => import('./modules/disposicion/index.js').then(m => m.cargarDisposicion()));
     }
     if (btnLaboratorio && !btnLaboratorio.classList.contains('hidden')) {
-        btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio.js').then(m => m.cargarLaboratorio()));
+        btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio/index.js').then(m => m.cargarLaboratorio()));
     }
     if (btnRutinas && !btnRutinas.classList.contains('hidden')) {
         btnRutinas.addEventListener('click', () => import('./modules/rutinas.js').then(m => m.cargarRutinas()));
@@ -235,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
 
-    // 6. Menú hamburguesa universal
+    // 6. Menú hamburguesa
     if (menuToggle && sidebarEl) {
         menuToggle.addEventListener('click', () => {
             sidebarEl.classList.toggle('sidebar-closed');
@@ -255,7 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 7. Iniciar presencia
     await iniciarPresencia(user.id, userName);
 
-    // 8. Obtener y guardar el playerId de OneSignal (localStorage + tabla dispositivos)
+    // 8. Obtener y guardar el playerId de OneSignal
     try {
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function(OneSignal) {
@@ -264,11 +261,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (playerId && user) {
                     localStorage.setItem('playerId', playerId);
 
-                    // Guardar en la tabla dispositivos para notificaciones por rol
-                    const { error } = await supabase.from('dispositivos').upsert({
-                        usuario_id: user.id,
-                        player_id: playerId
-                    });
+                    const { error } = await supabase.from('dispositivos').upsert(
+                        {
+                            usuario_id: user.id,
+                            player_id: playerId
+                        },
+                        { onConflict: 'usuario_id,player_id' }
+                    );
 
                     if (error) {
                         console.warn('No se pudo registrar dispositivo:', error.message);
