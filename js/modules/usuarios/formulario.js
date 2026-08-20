@@ -31,6 +31,7 @@ export function abrirModalNuevo() {
                             <option value="laboratorio">Laboratorio</option>
                             <option value="superintendencia de acido">Superintendencia de Ácido</option>
                             <option value="SSL">SSL</option>
+                            <option value="direccion general">Dirección General</option>
                         </select>
                     </div>
                     <div>
@@ -41,6 +42,7 @@ export function abrirModalNuevo() {
                             <option value="ejecutor">Ejecutor</option>
                             <option value="inspector_ssl">Inspector SSL</option>
                             <option value="analista">Analista</option>
+                            <option value="directivos">Directivos</option>
                             <option value="admin">Administrador</option>
                         </select>
                     </div>
@@ -95,6 +97,7 @@ export async function abrirModalEditar(id) {
                             <option value="laboratorio" ${perfil.departamento === 'laboratorio' ? 'selected' : ''}>Laboratorio</option>
                             <option value="superintendencia de acido" ${perfil.departamento === 'superintendencia de acido' ? 'selected' : ''}>Superintendencia de Ácido</option>
                             <option value="SSL" ${perfil.departamento === 'SSL' ? 'selected' : ''}>SSL</option>
+                            <option value="direccion general" ${perfil.departamento === 'direccion general' ? 'selected' : ''}>Dirección General</option>
                         </select>
                     </div>
                     <div>
@@ -105,6 +108,7 @@ export async function abrirModalEditar(id) {
                             <option value="ejecutor" ${perfil.rol === 'ejecutor' ? 'selected' : ''}>Ejecutor</option>
                             <option value="inspector_ssl" ${perfil.rol === 'inspector_ssl' ? 'selected' : ''}>Inspector SSL</option>
                             <option value="analista" ${perfil.rol === 'analista' ? 'selected' : ''}>Analista</option>
+                            <option value="directivos" ${perfil.rol === 'directivos' ? 'selected' : ''}>Directivos</option>
                             <option value="admin" ${perfil.rol === 'admin' ? 'selected' : ''}>Administrador</option>
                         </select>
                     </div>
