@@ -6,6 +6,10 @@ export function puedeRegistrar(rol) {
 }
 
 export async function notificarLaboratorio(titulo, mensaje) {
-    const { enviarPushARoles } = await import('../../push.js');
-    await enviarPushARoles(['admin', 'supervisor', 'directivos'], `${titulo}: ${mensaje}`);
+    try {
+        const { enviarPushARoles } = await import('../../push.js');
+        await enviarPushARoles(['admin', 'supervisor', 'directivos'], `${titulo}: ${mensaje}`);
+    } catch (e) {
+        console.error('Error en notificación de laboratorio:', e);
+    }
 }
