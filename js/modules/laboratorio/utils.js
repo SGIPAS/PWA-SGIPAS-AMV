@@ -5,10 +5,7 @@ export function puedeRegistrar(rol) {
     return ['admin', 'analista'].includes(rol);
 }
 
-export async function notificarATodos(titulo, mensaje) {
-    try {
-        await supabase.rpc('notificar_a_todos', { titulo, mensaje });
-    } catch (e) {
-        console.warn('Notificación no enviada:', e);
-    }
+export async function notificarLaboratorio(titulo, mensaje) {
+    const { enviarPushARoles } = await import('../../push.js');
+    await enviarPushARoles(['admin', 'supervisor', 'directivos'], `${titulo}: ${mensaje}`);
 }
