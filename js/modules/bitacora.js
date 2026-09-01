@@ -140,12 +140,12 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         //OCP Listas de personal por rol
         const personalPorRol = {
-            'Supervisor': ['Jose Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver Ramirez (D)'],
+            'Supervisor': ['Wladimir J. Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver J. Ramirez (D)'],
             'Panelista': ['Angel S. Solorzano', 'Noelvis dj Camacho T.', 'Hilnelio J. García Q.', 'Jesus E. Trias V.'],
-            'Operador 1': ['Operador 1A', 'Operador 1B', 'Operador 1C', 'Operador 1D', 'Operador 1E', 'Operador 1F', 'Operador 1G', 'Operador 1H', 'Operador 1I', 'Operador 1J'],
-            'Operador 2': ['Operador 2A', 'Operador 2B', 'Operador 2C', 'Operador 2D', 'Operador 2E', 'Operador 2F', 'Operador 2G', 'Operador 2H', 'Operador 2I', 'Operador 2J'],
-            'Operador 3': ['Operador 3A', 'Operador 3B', 'Operador 3C', 'Operador 3D', 'Operador 3E', 'Operador 3F', 'Operador 3G', 'Operador 3H', 'Operador 3I', 'Operador 3J'],
-            'Paramedico': ['Paramedico A', 'Paramedico B'],
+            'Operador 1': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Operador 2': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Operador 3': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Paramedico': ['Arturo Tenia', 'Joseanny C. González', 'Lisangel L. Guevara', 'Lisbeth González'],
             'Inspector SSL': ['Inspector SSL A', 'Inspector SSL B']
         };
 
