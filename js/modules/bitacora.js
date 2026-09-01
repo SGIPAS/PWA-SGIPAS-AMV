@@ -138,10 +138,10 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // Listas de personal por rol (reemplace los nombres de ejemplo por los reales)
+        //OCP Listas de personal por rol
         const personalPorRol = {
             'Supervisor': ['Jose Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver Ramirez (D)'],
-            'Panelista': ['Panelista A', 'Panelista B'],
+            'Panelista': ['Angel S. Solorzano', 'Noelvis dj Camacho T.', 'Hilnelio J. García Q.', 'Jesus E. Trias V.'],
             'Operador 1': ['Operador 1A', 'Operador 1B', 'Operador 1C', 'Operador 1D', 'Operador 1E', 'Operador 1F', 'Operador 1G', 'Operador 1H', 'Operador 1I', 'Operador 1J'],
             'Operador 2': ['Operador 2A', 'Operador 2B', 'Operador 2C', 'Operador 2D', 'Operador 2E', 'Operador 2F', 'Operador 2G', 'Operador 2H', 'Operador 2I', 'Operador 2J'],
             'Operador 3': ['Operador 3A', 'Operador 3B', 'Operador 3C', 'Operador 3D', 'Operador 3E', 'Operador 3F', 'Operador 3G', 'Operador 3H', 'Operador 3I', 'Operador 3J'],
