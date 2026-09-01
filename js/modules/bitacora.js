@@ -140,7 +140,7 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         // Listas de personal por rol (reemplace los nombres de ejemplo por los reales)
         const personalPorRol = {
-            'Supervisor': ['Supervisor A', 'Supervisor B', 'Supervisor C', 'Supervisor D'],
+            'Supervisor': ['Jose Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver Ramirez (D)'],
             'Panelista': ['Panelista A', 'Panelista B'],
             'Operador 1': ['Operador 1A', 'Operador 1B', 'Operador 1C', 'Operador 1D', 'Operador 1E', 'Operador 1F', 'Operador 1G', 'Operador 1H', 'Operador 1I', 'Operador 1J'],
             'Operador 2': ['Operador 2A', 'Operador 2B', 'Operador 2C', 'Operador 2D', 'Operador 2E', 'Operador 2F', 'Operador 2G', 'Operador 2H', 'Operador 2I', 'Operador 2J'],
