@@ -1,5 +1,5 @@
 // ocp Módulo de Reportes – orquestador de informes imprimibles
-import { renderizarInformeGestion } from './gestion.js';
+import { renderizarInformeGestion, renderizarReportesMensuales } from './gestion.js';
 import { renderizarInformeEmisiones } from './emisiones.js';
 import { obtenerRolUsuario } from '../operaciones/utils.js';
 
@@ -13,12 +13,13 @@ export async function cargarReportes() {
     contenedor.innerHTML = `
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-100">Reportes</h1>
-            <p class="text-slate-400 mt-1">Informes de gestión y emisiones.</p>
+            <p class="text-slate-400 mt-1">Informes de gestión, emisiones y reportes mensuales.</p>
         </div>
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav">
                 <button data-tab="gestion" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📊 Gestión Operacional</button>
                 <button data-tab="emisiones" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🌫️ Emisiones SO₂</button>
+                <button data-tab="mensuales" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📅 Reportes Mensuales</button>
             </nav>
         </div>
         <div id="tab-content" class="bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-6"></div>
@@ -38,8 +39,9 @@ export async function cargarReportes() {
             activa.classList.add('border-blue-500', 'text-blue-500');
         }
         switch (name) {
-            case 'gestion': await renderizarInformeGestion(tabContent, currentUserRole); break;
-            case 'emisiones': await renderizarInformeEmisiones(tabContent); break;
+            case 'gestion':    await renderizarInformeGestion(tabContent, currentUserRole);    break;
+            case 'emisiones':  await renderizarInformeEmisiones(tabContent);                    break;
+            case 'mensuales':  await renderizarReportesMensuales(tabContent, currentUserRole);  break;
         }
     }
 
