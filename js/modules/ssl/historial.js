@@ -104,4 +104,51 @@ async function imprimirPTS(permisoId) {
                 <tr><td class="label">Descripción:</td><td colspan="6">${pts.descripcion_trabajo || ''}</td></tr>
             </table>
 
-            <h2>RIESGOS
+            <h2>RIESGOS Y CONTROLES (A.R.T.)</h2>
+            <table>
+                <tr><td class="label">LOTO:</td><td class="center">${chk(pts.check_loto)}</td>
+                    <td class="label">Válvulas:</td><td class="center">${chk(pts.check_valvulas)}</td>
+                    <td class="label">Gases:</td><td class="center">${chk(pts.check_gases)}</td></tr>
+                <tr><td class="label">Químicos:</td><td class="center">${chk(pts.check_quimicos)}</td>
+                    <td class="label">Caliente:</td><td class="center">${chk(pts.check_caliente)}</td>
+                    <td class="label">Bypass:</td><td class="center">${chk(pts.check_bypass_control)}</td></tr>
+                ${pts.check_gases ? `<tr>
+                    <td class="label">Gases medidos:</td>
+                    <td colspan="5">O₂: ${pts.valor_o2 ?? '--'}% | SO₂: ${pts.valor_so2 ?? '--'} ppm | H₂S: ${pts.valor_h2s ?? '--'} ppm | Explosivos: ${pts.valor_explosivos ?? '--'}%</td>
+                </tr>` : ''}
+            </table>
+
+            <h2>TRABAJADORES EJECUTANTES</h2>
+            <table>
+                <tr><th>Nombre</th><th>Cédula</th><th>Cargo</th><th>Firma</th></tr>
+                ${(trabajadores || []).map(t => `<tr>
+                    <td>${t.trabajadores?.nombre_completo || ''}</td>
+                    <td>${t.trabajadores?.cedula || ''}</td>
+                    <td>${t.cargo || ''}</td>
+                    <td class="firma"></td>
+                </tr>`).join('')}
+                ${Array(Math.max(0, 4 - (trabajadores?.length || 0))).fill(0).map(() => `<tr><td></td><td></td><td></td><td class="firma"></td></tr>`).join('')}
+            </table>
+
+            <h2>FIRMAS</h2>
+            <table>
+                <tr>
+                    <td class="label">Responsable Área:</td><td class="firma"></td>
+                    <td class="label">Responsable Seguridad:</td><td class="firma"></td>
+                    <td class="label">Responsable Ejecutar:</td><td class="firma"></td>
+                </tr>
+                <tr><td class="label">Fecha:</td><td></td><td class="label">Fecha:</td><td></td><td class="label">Fecha:</td><td></td></tr>
+            </table>
+
+            <h2>REVALIDACIONES</h2>
+            <table>
+                <tr><th>Responsable Área</th><th>Responsable Seguridad</th><th>Responsable Ejecutar</th><th>Fecha</th></tr>
+                ${Array(5).fill(0).map(() => `<tr><td class="firma"></td><td class="firma"></td><td class="firma"></td><td></td></tr>`).join('')}
+            </table>
+
+            <div class="no-print" style="text-align:center; margin-top:16px;">
+                <button onclick="window.print()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:4px; cursor:pointer;">🖨️ Imprimir</button>
+            </div>
+        </body></html>`);
+    win.document.close();
+}
