@@ -1,11 +1,12 @@
 // ocp Informe de Gestión Operacional – checklist de parámetros con fechas independientes y cintillo
 import { supabase } from '../../supabase-client.js';
-import { exportarAExcel } from './utils.js';
 
 let checklistEstado = {};
 
+// ============================================================
+// 1. INFORME DE GESTIÓN OPERACIONAL (checklist con fechas)
+// ============================================================
 export async function renderizarInformeGestion(contenedor, rol) {
-    // Obtener listas para selectores secundarios
     const { data: puntosPH } = await supabase.from('ph_aguas').select('punto_muestreo').order('punto_muestreo');
     const { data: equiposMotor } = await supabase.from('puntos_medicion_motores').select('tag_equipo').order('tag_equipo');
     const { data: difPuntos } = await supabase.from('diferenciales_presion').select('punto_medicion, tag_equipo').order('tag_equipo');
@@ -14,7 +15,6 @@ export async function renderizarInformeGestion(contenedor, rol) {
     const motorTags = [...new Set((equiposMotor || []).map(e => e.tag_equipo))];
     const difUnicos = [...new Set((difPuntos || []).map(d => `${d.tag_equipo} - ${d.punto_medicion}`))];
 
-    // Definir estructura del checklist
     const grupos = [
         {
             nombre: 'Ácido Sulfúrico',
@@ -141,7 +141,6 @@ export async function renderizarInformeGestion(contenedor, rol) {
         </div>
     `;
 
-    // Inicializar estado de los checkboxes
     document.querySelectorAll('.check-param').forEach(chk => {
         const id = chk.dataset.id;
         checklistEstado[id] = checklistEstado[id] || { marcado: false, desde: '', hasta: '' };
@@ -370,4 +369,136 @@ function exportarInformeExcel() {
         }
     }
     XLSX.writeFile(wb, `gestion_operacional_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ============================================================
+// 2. REPORTES MENSUALES (OT y PTS separados, imprimibles)
+// ============================================================
+export async function renderizarReportesMensuales(contenedor, rol) {
+    const mesActual = new Date().getMonth() + 1;
+    const anioActual = new Date().getFullYear();
+
+    contenedor.innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-2xl font-bold text-white">Reportes Mensuales</h2>
+            <div class="bg-slate-800 rounded-lg p-4 border border-slate-700 flex flex-wrap gap-4 items-end">
+                <div>
+                    <label class="block text-slate-400 text-sm mb-1">Mes</label>
+                    <select id="rep-mes" class="bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                        ${Array.from({length:12}, (_, i) => `<option value="${i+1}" ${i+1 === mesActual ? 'selected' : ''}>${new Date(2024, i, 1).toLocaleString('es-VE', { month: 'long' })}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-sm mb-1">Año</label>
+                    <input type="number" id="rep-anio" value="${anioActual}" class="bg-slate-900 border border-slate-700 rounded p-2 text-white w-24">
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-sm mb-1">Tipo</label>
+                    <select id="rep-tipo" class="bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                        <option value="ot">Órdenes de Trabajo (Mantenimiento)</option>
+                        <option value="pts">Permisos de Trabajo (SSL)</option>
+                    </select>
+                </div>
+                <button id="btn-generar-rep" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Generar</button>
+                <button id="btn-imprimir-rep" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded hidden">🖨️ Imprimir</button>
+            </div>
+            <div id="vista-reporte-mensual"></div>
+        </div>`;
+
+    document.getElementById('btn-generar-rep').addEventListener('click', async () => {
+        const mes = parseInt(document.getElementById('rep-mes').value);
+        const anio = parseInt(document.getElementById('rep-anio').value);
+        const tipo = document.getElementById('rep-tipo').value;
+        const desde = new Date(anio, mes - 1, 1).toISOString();
+        const hasta = new Date(anio, mes, 1).toISOString();
+        const vista = document.getElementById('vista-reporte-mensual');
+        const mesNombre = new Date(anio, mes - 1).toLocaleString('es-VE', { month: 'long', year: 'numeric' });
+        const cintillo = `<div style="width:100%;margin-bottom:1rem;border-bottom:2px solid #1e3a8a;padding-bottom:0.5rem;"><img src="cintillo_superior.png" style="width:100%;height:auto;display:block;" onerror="this.style.display='none'"></div>`;
+        const firmas = (cargo1, cargo2) => `
+            <div class="mt-8 grid grid-cols-2 gap-8 text-xs">
+                <div class="text-center"><div style="border-top:1px solid #000;padding-top:4px;margin-top:40px;">${cargo1}</div></div>
+                <div class="text-center"><div style="border-top:1px solid #000;padding-top:4px;margin-top:40px;">${cargo2}</div></div>
+            </div>`;
+
+        if (tipo === 'ot') {
+            const { data } = await supabase.from('ordenes_trabajo').select('*')
+                .gte('fecha_solicitud', desde).lt('fecha_solicitud', hasta).order('fecha_solicitud');
+            const total = data?.length || 0;
+            const cerradas = data?.filter(o => o.estado === 'cerrada').length || 0;
+            const pendientes = data?.filter(o => o.estado === 'pendiente').length || 0;
+            const enProceso = total - cerradas - pendientes;
+            const porPrioridad = {};
+            data?.forEach(o => { porPrioridad[o.prioridad] = (porPrioridad[o.prioridad] || 0) + 1; });
+
+            vista.innerHTML = `
+                <div id="reporte-mensual-print" class="bg-white text-slate-800 p-6 rounded shadow max-w-4xl mx-auto">
+                    ${cintillo}
+                    <h2 class="text-xl font-bold mb-1 text-center">REPORTE MENSUAL DE ÓRDENES DE TRABAJO</h2>
+                    <p class="text-center text-sm mb-4">${mesNombre}</p>
+                    <div class="grid grid-cols-4 gap-2 mb-4 text-center text-sm">
+                        <div class="border rounded p-2"><div class="font-bold text-lg">${total}</div><div class="text-xs">Total OTs</div></div>
+                        <div class="border rounded p-2"><div class="font-bold text-lg text-green-700">${cerradas}</div><div class="text-xs">Cerradas</div></div>
+                        <div class="border rounded p-2"><div class="font-bold text-lg text-yellow-700">${pendientes}</div><div class="text-xs">Pendientes</div></div>
+                        <div class="border rounded p-2"><div class="font-bold text-lg">${enProceso}</div><div class="text-xs">En proceso</div></div>
+                    </div>
+                    <p class="text-sm mb-2"><strong>Por prioridad:</strong> ${Object.entries(porPrioridad).map(([k,v]) => `${k}: ${v}`).join(' | ') || 'N/A'}</p>
+                    <table class="w-full text-xs border-collapse">
+                        <thead><tr class="bg-gray-200">
+                            <th class="border p-1">N° OT</th><th class="border p-1">Fecha</th><th class="border p-1">Título</th>
+                            <th class="border p-1">Tipo</th><th class="border p-1">Prioridad</th><th class="border p-1">Estado</th>
+                        </tr></thead>
+                        <tbody>
+                            ${(data || []).map(o => `<tr>
+                                <td class="border p-1 font-mono">${o.numero_ot}</td>
+                                <td class="border p-1">${new Date(o.fecha_solicitud).toLocaleDateString('es-VE')}</td>
+                                <td class="border p-1">${o.titulo}</td>
+                                <td class="border p-1">${o.tipo}</td>
+                                <td class="border p-1">${o.prioridad}</td>
+                                <td class="border p-1">${o.estado}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    ${firmas('Coordinador de Mantenimiento', 'Gerente de Planta')}
+                </div>`;
+        } else {
+            const { data } = await supabase.from('permisos_ssl')
+                .select('*, ordenes_trabajo(numero_ot)')
+                .gte('created_at', desde).lt('created_at', hasta).order('created_at');
+            const total = data?.length || 0;
+            const porTipo = {};
+            data?.forEach(p => { porTipo[p.tipo_trabajo || 'frio'] = (porTipo[p.tipo_trabajo || 'frio'] || 0) + 1; });
+
+            vista.innerHTML = `
+                <div id="reporte-mensual-print" class="bg-white text-slate-800 p-6 rounded shadow max-w-4xl mx-auto">
+                    ${cintillo}
+                    <h2 class="text-xl font-bold mb-1 text-center">REPORTE MENSUAL DE PERMISOS DE TRABAJO (PTS)</h2>
+                    <p class="text-center text-sm mb-4">${mesNombre}</p>
+                    <div class="grid grid-cols-5 gap-2 mb-4 text-center text-sm">
+                        <div class="border rounded p-2"><div class="font-bold text-lg">${total}</div><div class="text-xs">Total PTS</div></div>
+                        ${Object.entries(porTipo).map(([k,v]) => `<div class="border rounded p-2"><div class="font-bold text-lg">${v}</div><div class="text-xs capitalize">${k.replace('_',' ')}</div></div>`).join('')}
+                    </div>
+                    <table class="w-full text-xs border-collapse">
+                        <thead><tr class="bg-gray-200">
+                            <th class="border p-1">N° PTS</th><th class="border p-1">OT</th><th class="border p-1">Tipo</th>
+                            <th class="border p-1">Fecha desde</th><th class="border p-1">Fecha hasta</th><th class="border p-1">Área</th>
+                        </tr></thead>
+                        <tbody>
+                            ${(data || []).map(p => `<tr>
+                                <td class="border p-1 font-mono">${p.numero_pts || ''}</td>
+                                <td class="border p-1 font-mono">${p.ordenes_trabajo?.numero_ot || ''}</td>
+                                <td class="border p-1 capitalize">${(p.tipo_trabajo || '').replace('_',' ')}</td>
+                                <td class="border p-1">${p.fecha_desde || ''}</td>
+                                <td class="border p-1">${p.fecha_hasta || ''}</td>
+                                <td class="border p-1">${p.planta_area_intervenida || ''}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    ${firmas('Inspector SSL', 'Supervisor solicitante')}
+                </div>`;
+        }
+
+        document.getElementById('btn-imprimir-rep').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-imprimir-rep').addEventListener('click', () => window.print());
 }
