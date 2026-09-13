@@ -1,7 +1,12 @@
-// ocp Emitir PTS + ART con correlativo, gases condicionales y trabajadores
+// ocp Emitir PTS + ART con correlativo, gases condicionales y trabajadores (con registro)
 import { supabase } from '../../supabase-client.js';
 import { obtenerCorrelativo } from '../utils.js';
 import { enviarPushARoles } from '../../push.js';
+
+const DEPARTAMENTOS_TRABAJADOR = [
+    'operaciones', 'mecanico', 'electrico', 'instrumentacion',
+    'fabricacion', 'servicios generales', 'SSL', 'laboratorio', 'contratista'
+];
 
 export async function renderizarEmitirPTS(contenedor, rol) {
     const puedeEmitir = ['admin', 'inspector_ssl'].includes(rol);
@@ -76,9 +81,12 @@ export async function renderizarEmitirPTS(contenedor, rol) {
                         </div>
                     </div>
                     <div class="bg-slate-800 p-4 rounded border border-slate-700">
-                        <div class="flex justify-between items-center mb-2">
+                        <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
                             <p class="text-sm font-semibold text-slate-300">Trabajadores ejecutantes</p>
-                            <button type="button" id="btn-add-trabajador" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">+ Agregar</button>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-add-trabajador" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">+ Agregar de la lista</button>
+                                <button type="button" id="btn-nuevo-trabajador" class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">+ Nuevo trabajador</button>
+                            </div>
                         </div>
                         <div id="lista-trabajadores" class="space-y-2"></div>
                     </div>
@@ -93,10 +101,43 @@ export async function renderizarEmitirPTS(contenedor, rol) {
                 <p class="text-yellow-200 text-lg font-semibold">Acceso restringido</p>
                 <p class="text-yellow-300 mt-2">Solo Inspector SSL o Administrador.</p>
             </div>`}
-        </div>`;
+        </div>
+
+        <!-- Modal nuevo trabajador -->
+        <div id="modal-trabajador" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div class="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 w-full max-w-md p-6">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-slate-700 pb-2">Registrar Nuevo Trabajador</h3>
+                <form id="form-nuevo-trabajador" class="space-y-3">
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-1">Cédula *</label>
+                        <input type="text" id="trab-cedula" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-1">Nombre completo *</label>
+                        <input type="text" id="trab-nombre" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-1">Cargo</label>
+                        <input type="text" id="trab-cargo" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="Ej: Soldador, Mecánico">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-sm mb-1">Departamento</label>
+                        <select id="trab-departamento" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                            ${DEPARTAMENTOS_TRABAJADOR.map(d => `<option value="${d}" class="capitalize">${d}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+                        <button type="button" id="btn-cerrar-modal-trab" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-bold">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
 
     if (!puedeEmitir) return;
 
+    // Cargar OTs pendientes con PTS requerido
     const { data: ots } = await supabase.from('ordenes_trabajo')
         .select('id, numero_ot, titulo').eq('estado', 'pendiente').eq('requiere_pts', true);
     const select = document.getElementById('pts-orden');
@@ -104,25 +145,99 @@ export async function renderizarEmitirPTS(contenedor, rol) {
         (ots?.length ? ots.map(ot => `<option value="${ot.id}">${ot.numero_ot} – ${ot.titulo}</option>`).join('')
                       : '<option value="">No hay OTs pendientes con PTS</option>');
 
-    const { data: trabajadores } = await supabase.from('trabajadores').select('*').eq('activo', true).order('nombre_completo');
+    // Cache local de trabajadores
+    let trabajadoresCache = [];
+    async function cargarTrabajadores() {
+        const { data } = await supabase.from('trabajadores')
+            .select('*').eq('activo', true).order('nombre_completo');
+        trabajadoresCache = data || [];
+        return trabajadoresCache;
+    }
+    await cargarTrabajadores();
 
+    // Bloque de gases
     document.getElementById('art-gases').addEventListener('change', (e) => {
         document.getElementById('bloque-gases').classList.toggle('hidden', !e.target.checked);
     });
 
+    // Añadir fila de trabajador (desde lista)
     document.getElementById('btn-add-trabajador').addEventListener('click', () => {
+        if (trabajadoresCache.length === 0) {
+            alert('No hay trabajadores registrados. Use "+ Nuevo trabajador" para agregar.');
+            return;
+        }
         const div = document.createElement('div');
         div.className = 'flex gap-2 items-center';
         div.innerHTML = `
             <select class="trab-select flex-1 bg-slate-900 border border-slate-700 rounded p-1 text-white text-sm">
                 <option value="">Seleccione trabajador...</option>
-                ${(trabajadores || []).map(t => `<option value="${t.id}" data-cargo="${t.cargo || ''}">${t.nombre_completo} - ${t.cedula} - ${t.departamento || ''}</option>`).join('')}
+                ${trabajadoresCache.map(t => `<option value="${t.id}" data-cargo="${t.cargo || ''}">${t.nombre_completo} - ${t.cedula} - ${t.departamento || ''}</option>`).join('')}
             </select>
+            <input type="text" class="trab-cargo-manual bg-slate-900 border border-slate-700 rounded p-1 text-white text-sm w-32" placeholder="Cargo">
             <button type="button" class="btn-del-trab text-red-500 hover:text-red-300 text-lg px-2">✕</button>`;
         div.querySelector('.btn-del-trab').addEventListener('click', () => div.remove());
+        div.querySelector('.trab-select').addEventListener('change', function() {
+            if (this.value) {
+                const opt = this.options[this.selectedIndex];
+                div.querySelector('.trab-cargo-manual').value = opt.dataset.cargo || '';
+            }
+        });
         document.getElementById('lista-trabajadores').appendChild(div);
     });
 
+    // Abrir modal nuevo trabajador
+    document.getElementById('btn-nuevo-trabajador').addEventListener('click', () => {
+        document.getElementById('modal-trabajador').classList.remove('hidden');
+        document.getElementById('form-nuevo-trabajador').reset();
+    });
+    document.getElementById('btn-cerrar-modal-trab').addEventListener('click', () => {
+        document.getElementById('modal-trabajador').classList.add('hidden');
+    });
+
+    // Guardar nuevo trabajador
+    document.getElementById('form-nuevo-trabajador').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cedula = document.getElementById('trab-cedula').value.trim();
+        const nombre = document.getElementById('trab-nombre').value.trim();
+        const cargo = document.getElementById('trab-cargo').value.trim();
+        const departamento = document.getElementById('trab-departamento').value;
+
+        if (!cedula || !nombre) return alert('Cédula y nombre son obligatorios.');
+
+        const { data: nuevo, error } = await supabase.from('trabajadores').insert([{
+            cedula, nombre_completo: nombre, cargo: cargo || null,
+            departamento: departamento || null, activo: true
+        }]).select().single();
+
+        if (error) {
+            if (error.code === '23505') return alert('Ya existe un trabajador con esa cédula.');
+            return alert('Error al guardar trabajador: ' + error.message);
+        }
+
+        alert('Trabajador registrado correctamente.');
+        document.getElementById('modal-trabajador').classList.add('hidden');
+
+        // Refrescar la lista cache
+        await cargarTrabajadores();
+
+        // Añadir automáticamente el nuevo trabajador a la lista del PTS
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 items-center';
+        div.innerHTML = `
+            <select class="trab-select flex-1 bg-slate-900 border border-slate-700 rounded p-1 text-white text-sm">
+                ${trabajadoresCache.map(t => `<option value="${t.id}" data-cargo="${t.cargo || ''}" ${t.id === nuevo.id ? 'selected' : ''}>${t.nombre_completo} - ${t.cedula} - ${t.departamento || ''}</option>`).join('')}
+            </select>
+            <input type="text" class="trab-cargo-manual bg-slate-900 border border-slate-700 rounded p-1 text-white text-sm w-32" value="${nuevo.cargo || ''}" placeholder="Cargo">
+            <button type="button" class="btn-del-trab text-red-500 hover:text-red-300 text-lg px-2">✕</button>`;
+        div.querySelector('.btn-del-trab').addEventListener('click', () => div.remove());
+        div.querySelector('.trab-select').addEventListener('change', function() {
+            const opt = this.options[this.selectedIndex];
+            div.querySelector('.trab-cargo-manual').value = opt.dataset.cargo || '';
+        });
+        document.getElementById('lista-trabajadores').appendChild(div);
+    });
+
+    // Submit del PTS
     document.getElementById('form-pts').addEventListener('submit', async (e) => {
         e.preventDefault();
         const orden_id = select.value;
@@ -169,12 +284,19 @@ export async function renderizarEmitirPTS(contenedor, rol) {
 
         const trabajadoresPayload = [];
         document.querySelectorAll('.trab-select').forEach(s => {
-            if (s.value) trabajadoresPayload.push({
-                permiso_id: ptsIns.id, trabajador_id: s.value,
-                cargo: s.options[s.selectedIndex].dataset.cargo || null
-            });
+            if (s.value) {
+                const cargoManual = s.parentElement.querySelector('.trab-cargo-manual')?.value.trim();
+                trabajadoresPayload.push({
+                    permiso_id: ptsIns.id,
+                    trabajador_id: s.value,
+                    cargo: cargoManual || s.options[s.selectedIndex].dataset.cargo || null
+                });
+            }
         });
-        if (trabajadoresPayload.length) await supabase.from('permisos_ssl_trabajadores').insert(trabajadoresPayload);
+        if (trabajadoresPayload.length) {
+            const { error: errTrab } = await supabase.from('permisos_ssl_trabajadores').insert(trabajadoresPayload);
+            if (errTrab) console.error('Error guardando trabajadores:', errTrab);
+        }
 
         await supabase.from('art').insert([{
             permiso_id: ptsIns.id,
