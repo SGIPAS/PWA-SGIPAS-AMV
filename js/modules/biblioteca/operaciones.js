@@ -1,11 +1,10 @@
-// ocp Operaciones CRUD y consultas para la Biblioteca Digital – versión explorador
+// ocp Operaciones CRUD y consultas para la Biblioteca Digital
 import { supabase } from '../../supabase-client.js';
 
 // ================================================================
-// ocp Consultas para el explorador (tarjetas de documentos)
+// Consultas para el explorador
 // ================================================================
 
-// ocp Carga documentos por categoría/subcategoría y los muestra en tarjetas
 export async function cargarDocumentosPorCategoria(categoria, subcategoria, rol) {
     const grid = document.getElementById('grid-documentos');
     const totalEl = document.getElementById('total-documentos');
@@ -33,9 +32,9 @@ export async function cargarDocumentosPorCategoria(categoria, subcategoria, rol)
     }
 
     grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol)).join('');
+    enlazarBotonesVerVideo(grid);
 }
 
-// ocp Busca documentos por texto libre y filtros adicionales
 export async function buscarDocumentos(texto, tipo, formato, rol) {
     const grid = document.getElementById('grid-documentos');
     const totalEl = document.getElementById('total-documentos');
@@ -45,22 +44,12 @@ export async function buscarDocumentos(texto, tipo, formato, rol) {
 
     let query = supabase.from('documentos').select('*', { count: 'exact' });
 
-    // Construir filtros dinámicos
     if (texto) {
-        // Buscar en título, código, tags y descripción usando ilike
         const filtro = `%${texto}%`;
         query = query.or(`titulo.ilike.${filtro},codigo.ilike.${filtro},descripcion.ilike.${filtro}`);
-        // También podríamos buscar en tags usando array operators, pero por simplicidad usamos ilike en un campo de texto concatenado si fuera necesario.
-        // Para tags, podríamos usar .contains('tags', [texto]) si supabase lo soporta, pero es más complejo.
-        // Por ahora, la búsqueda en título, código y descripción es suficiente.
     }
     if (tipo) query = query.eq('tipo', tipo);
-    if (formato) {
-        // Si el formato es 'video', buscar tipo 'video'; si es 'imagen', buscar tipos que sean imagen, etc.
-        // Para simplificar, asumimos que el campo 'formato' se llena automáticamente con la extensión del archivo,
-        // pero aún no hemos implementado eso. Por ahora, podemos filtrar por tipo si coincide.
-        query = query.eq('tipo', formato);
-    }
+    if (formato) query = query.eq('tipo', formato);
 
     query = query.order('fecha_publicacion', { ascending: false });
 
@@ -79,38 +68,44 @@ export async function buscarDocumentos(texto, tipo, formato, rol) {
     }
 
     grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol)).join('');
+    enlazarBotonesVerVideo(grid);
 }
 
-// ocp Construye el HTML de una tarjeta de documento
+// ocp Handler para botones "Reproducir" de videos
+function enlazarBotonesVerVideo(grid) {
+    grid.querySelectorAll('.ver-video').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const url = btn.dataset.url;
+            const w = window.open('', '_blank');
+            w.document.write(`
+                <!DOCTYPE html><html><head><meta charset="utf-8"><title>Reproductor</title>
+                <style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}video{max-width:100%;max-height:100vh;}</style>
+                </head><body>
+                <video src="${url}" controls autoplay></video>
+                </body></html>`);
+            w.document.close();
+        });
+    });
+}
+
 function crearTarjetaDocumento(doc, rol) {
     const esAdmin = rol === 'admin';
     const iconos = {
-        manual: '📘',
-        procedimiento: '📙',
-        formulario: '📄',
-        registro: '📋',
-        practica: '📝',
-        video: '🎥',
-        ficha_tecnica: '📊',
-        plano: '🗺️',
-        presentacion: '📈',
-        otro: '📎'
+        manual: '📘', procedimiento: '📙', formulario: '📄', registro: '📋',
+        practica: '📝', video: '🎥', ficha_tecnica: '📊', plano: '🗺️',
+        presentacion: '📈', otro: '📎'
     };
     const icono = iconos[doc.tipo] || '📎';
     const colorBorde = {
-        'Normativa': '#f59e0b',
-        'SGIPAS': '#3b82f6',
-        'Operaciones': '#10b981',
-        'Mantenimiento': '#8b5cf6',
-        'Seguridad y Salud': '#ef4444',
-        'Ambiente y Energía': '#06b6d4',
-        'Laboratorio': '#ec4899',
-        'Capacitación': '#f97316',
-        'Administrativo': '#6366f1'
+        'Normativa': '#f59e0b', 'SGIPAS': '#3b82f6', 'Operaciones': '#10b981',
+        'Mantenimiento': '#8b5cf6', 'Seguridad y Salud': '#ef4444',
+        'Ambiente y Energía': '#06b6d4', 'Laboratorio': '#ec4899',
+        'Capacitación': '#f97316', 'Administrativo': '#6366f1'
     }[doc.categoria] || '#64748b';
 
     const vigencia = doc.fecha_vigencia ? new Date(doc.fecha_vigencia).toLocaleDateString('es-VE') : '';
     const vigente = doc.fecha_vigencia ? new Date(doc.fecha_vigencia) >= new Date() : true;
+    const urlPublica = doc.archivo_url ? supabase.storage.from('biblioteca').getPublicUrl(doc.archivo_url).data.publicUrl : null;
 
     return `
         <div class="bg-slate-800 rounded-lg shadow-lg border-l-4 hover:bg-slate-700 transition p-4 flex flex-col" style="border-left-color: ${colorBorde};">
@@ -125,10 +120,10 @@ function crearTarjetaDocumento(doc, rol) {
                 <span class="text-slate-500">${vigencia ? 'Vence: ' + vigencia : ''}</span>
             </div>
             <div class="flex gap-2 mt-3">
-                ${doc.archivo_url ? 
-                    (doc.tipo === 'video' ? 
-                        `<button class="text-xs text-blue-400 hover:underline ver-video" data-url="${supabase.storage.from('biblioteca').getPublicUrl(doc.archivo_url).data.publicUrl}">▶ Reproducir</button>` 
-                        : `<a href="${supabase.storage.from('biblioteca').getPublicUrl(doc.archivo_url).data.publicUrl}" target="_blank" class="text-xs text-blue-400 hover:underline">📥 Descargar</a>`)
+                ${urlPublica ?
+                    (doc.tipo === 'video' ?
+                        `<button class="text-xs text-blue-400 hover:underline ver-video" data-url="${urlPublica}">▶ Reproducir</button>`
+                        : `<a href="${urlPublica}" target="_blank" rel="noopener" class="text-xs text-blue-400 hover:underline">📥 Abrir / Descargar</a>`)
                     : '<span class="text-xs text-slate-500">Sin archivo</span>'}
                 ${esAdmin ? `
                     <button onclick="window.editarDocumento('${doc.id}')" class="text-xs text-yellow-400 hover:underline ml-auto">✏️ Editar</button>
@@ -140,10 +135,9 @@ function crearTarjetaDocumento(doc, rol) {
 }
 
 // ================================================================
-// ocp Funciones CRUD (mantienen compatibilidad con el modal)
+// CRUD
 // ================================================================
 
-// ocp Abre modal para nuevo documento (metadatos actualizados)
 export function abrirModalNuevo() {
     document.getElementById('doc-id').value = '';
     document.getElementById('modal-titulo').textContent = 'Nuevo Documento';
@@ -162,14 +156,8 @@ export function abrirModalNuevo() {
     document.getElementById('modal-documento').classList.remove('hidden');
 }
 
-// ocp Abre modal para editar documento existente (carga metadatos)
 export async function abrirModalEditar(id) {
-    const { data: doc, error } = await supabase
-        .from('documentos')
-        .select('*')
-        .eq('id', id)
-        .single();
-
+    const { data: doc, error } = await supabase.from('documentos').select('*').eq('id', id).single();
     if (error || !doc) return alert('Documento no encontrado');
 
     document.getElementById('doc-id').value = doc.id;
@@ -191,12 +179,10 @@ export async function abrirModalEditar(id) {
     document.getElementById('modal-documento').classList.remove('hidden');
 }
 
-// ocp Cierra el modal
 export function cerrarModal() {
     document.getElementById('modal-documento').classList.add('hidden');
 }
 
-// ocp Maneja el envío del formulario (crear / actualizar) con todos los metadatos
 export async function manejarSubmitDocumento(rol) {
     const btn = document.getElementById('btn-guardar-doc');
     btn.disabled = true;
@@ -223,9 +209,13 @@ export async function manejarSubmitDocumento(rol) {
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `documentos/${fileName}`;
 
+            // ★ CLAVE: pasar contentType para que el navegador sepa qué es
             const { error: uploadError } = await supabase.storage
                 .from('biblioteca')
-                .upload(filePath, file, { upsert: false });
+                .upload(filePath, file, {
+                    contentType: file.type || 'application/octet-stream',
+                    upsert: false
+                });
 
             if (uploadError) throw new Error('Error al subir archivo: ' + uploadError.message);
             archivo_url = filePath;
@@ -246,7 +236,6 @@ export async function manejarSubmitDocumento(rol) {
         };
 
         if (id) {
-            // Actualizar existente
             const { data: docActual } = await supabase
                 .from('documentos')
                 .select('version_actual, archivo_url')
@@ -260,7 +249,6 @@ export async function manejarSubmitDocumento(rol) {
             if (archivo_url) payloadBase.archivo_url = archivo_url;
             payloadBase.fecha_publicacion = new Date().toISOString();
 
-            // Insertar versión anterior en historial
             await supabase.from('versiones').insert({
                 documento_id: id,
                 numero_version: docActual.version_actual,
@@ -269,14 +257,9 @@ export async function manejarSubmitDocumento(rol) {
                 creado_por: (await supabase.auth.getUser()).data.user.id
             });
 
-            const { error: updateError } = await supabase
-                .from('documentos')
-                .update(payloadBase)
-                .eq('id', id);
-
+            const { error: updateError } = await supabase.from('documentos').update(payloadBase).eq('id', id);
             if (updateError) throw updateError;
 
-            // Insertar nueva versión en historial
             await supabase.from('versiones').insert({
                 documento_id: id,
                 numero_version: nuevaVersion,
@@ -286,7 +269,6 @@ export async function manejarSubmitDocumento(rol) {
             });
 
         } else {
-            // Nuevo documento
             if (!archivo_url) throw new Error('Debe seleccionar un archivo');
 
             const { data: userData } = await supabase.auth.getUser();
@@ -316,7 +298,6 @@ export async function manejarSubmitDocumento(rol) {
         }
 
         cerrarModal();
-        // Recargar la vista actual (todos los documentos)
         await cargarDocumentosPorCategoria(null, null, rol);
 
     } catch (err) {
@@ -328,7 +309,6 @@ export async function manejarSubmitDocumento(rol) {
     }
 }
 
-// ocp Eliminación de documento (con confirmación)
 async function confirmarEliminarDocumento(id) {
     if (!confirm('¿Eliminar este documento y todo su historial? Esta acción no se puede deshacer.')) return;
 
@@ -341,12 +321,10 @@ async function confirmarEliminarDocumento(id) {
     if (error) {
         alert('Error al eliminar: ' + error.message);
     } else {
-        // Recargar la vista actual
-        await cargarDocumentosPorCategoria(null, null, 
+        await cargarDocumentosPorCategoria(null, null,
             (await supabase.auth.getUser()).data.user?.user_metadata?.rol || 'operador');
     }
 }
 
-// Exponer funciones globales para los botones de las tarjetas
 window.editarDocumento = (id) => abrirModalEditar(id);
 window.eliminarDocumento = (id) => confirmarEliminarDocumento(id);
