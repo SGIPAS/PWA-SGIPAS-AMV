@@ -1,4 +1,4 @@
-// ocp Módulo de Bitácora Digital de Turno – con cintillo, personal de turno y acontecimientos
+// ocp Módulo de Bitácora Digital de Turno – con cintillo, personal de turno y layout compacto
 import { supabase } from '../supabase-client.js';
 
 let entregaActual = null;
@@ -14,7 +14,6 @@ export async function cargarBitacora() {
         return;
     }
 
-    // Determinar turno
     const ahora = new Date();
     const hora = ahora.getHours();
     let fechaInicio, fechaFin, turnoNombre;
@@ -23,7 +22,7 @@ export async function cargarBitacora() {
         fechaFin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 19, 0, 0).toISOString();
         turnoNombre = 'Diurno (07:00 - 19:00)';
     } else {
-        const inicioNocturno = hora >= 19 
+        const inicioNocturno = hora >= 19
             ? new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 19, 0, 0)
             : new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() - 1, 19, 0, 0);
         fechaInicio = inicioNocturno.toISOString();
@@ -31,7 +30,6 @@ export async function cargarBitacora() {
         turnoNombre = 'Nocturno (19:00 - 07:00)';
     }
 
-    // Verificar si ya existe una entrega para este turno
     const { data: entregaExistente } = await supabase.from('entregas_turno')
         .select('*')
         .eq('fecha_inicio', fechaInicio)
@@ -119,13 +117,10 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
         const promNTU = acido.data?.length ? (acido.data.reduce((s, a) => s + (a.turbidez_ntu || 0), 0) / acido.data.length).toFixed(2) : '--';
         const bigBags = fundicion.data?.reduce((s, f) => s + (f.big_bags || 0), 0) || 0;
 
-        // Calcular pH promedio por equipo
         const phPorEquipo = {};
         if (ph.data?.length) {
             ph.data.forEach(p => {
-                if (!phPorEquipo[p.punto_muestreo]) {
-                    phPorEquipo[p.punto_muestreo] = { sum: 0, count: 0 };
-                }
+                if (!phPorEquipo[p.punto_muestreo]) phPorEquipo[p.punto_muestreo] = { sum: 0, count: 0 };
                 phPorEquipo[p.punto_muestreo].sum += p.valor_ph;
                 phPorEquipo[p.punto_muestreo].count++;
             });
@@ -135,162 +130,139 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
         const confirmanteId = entrega?.supervisor_entrante_id;
         const fechaConfirmacion = entrega?.fecha_confirmacion ? new Date(entrega.fecha_confirmacion).toLocaleString() : null;
         const rol = user.user_metadata?.rol;
-
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        //OCP Listas de personal por rol
         const personalPorRol = {
-            'Supervisor': ['Wladimir J. Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver J. Ramirez (D)'],
-            'Panelista': ['Angel S. Solorzano', 'Noelvis dj Camacho T.', 'Hilnelio J. García Q.', 'Jesus E. Trias V.'],
-            'Operador 1': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
-            'Operador 2': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
-            'Operador 3': ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'OCtavio A. Rodríguez C.🐾', 'Kelvis Samuray', 'Fernando Gruber'],
-            'Paramedico': ['Arturo Tenia', 'Joseanny C. González', 'Lisangel L. Guevara', 'Lisbeth González'],
-            'Inspector SSL': ['Inspector SSL A', 'Inspector SSL B']
+            'Supervisor':   ['Wladimir J. Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver J. Ramirez (D)'],
+            'Panelista':    ['Angel S. Solorzano', 'Noelvis dj Camacho T.', 'Hilnelio J. García Q.', 'Jesus E. Trias V.'],
+            'Operador 1':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Operador 2':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Operador 3':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+            'Paramedico':   ['Arturo Tenia', 'Joseanny C. González', 'Lisangel L. Guevara', 'Lisbeth González'],
+            'Inspector SSL':['Inspector SSL A', 'Inspector SSL B']
         };
 
-        const generarSelectPersonal = (rol) => {
-            const nombres = personalPorRol[rol] || [];
+        const generarSelectPersonal = (rolNombre) => {
+            const nombres = personalPorRol[rolNombre] || [];
             const opciones = nombres.map(n => `<option>${n}</option>`).join('');
-            return `
-                <select class="border rounded px-1 w-full select-personal" data-rol="${rol}">
-                    <option value="">Seleccione...</option>
-                    ${opciones}
-                    <option value="OTRO">Otro (especificar)</option>
-                </select>`;
+            return `<select class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white text-xs select-personal" data-rol="${rolNombre}">
+                <option value="">Seleccione...</option>
+                ${opciones}
+                <option value="OTRO">Otro</option>
+            </select>`;
         };
 
         let html = `
-        <div id="bitacora-print" class="max-w-4xl mx-auto text-slate-800 bg-white p-6 rounded shadow-lg print:shadow-none print:rounded-none">
-            <style>
-                @media print {
-                    body * { visibility: hidden; }
-                    #bitacora-print, #bitacora-print * { visibility: visible; }
-                    #bitacora-print { position: absolute; left: 0; top: 0; width: 100%; }
-                    .no-print { display: none; }
-                }
-            </style>
+        <div id="bitacora-print" class="bg-white text-slate-800 p-3" style="font-size: 10px; line-height: 1.25;">
 
-            <!-- Cintillo corporativo -->
-            <div style="width: 100%; margin-bottom: 1rem; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.5rem;">
+            <div style="width: 100%; margin-bottom: 6px; border-bottom: 2px solid #1e3a8a; padding-bottom: 3px;">
                 <img src="cintillo_superior.png" style="width: 100%; height: auto; display: block;" onerror="this.style.display='none'">
             </div>
 
-            <div class="text-center mb-4 border-b-2 border-gray-300 pb-2">
-                <h1 class="text-2xl font-bold">Entrega de Turno - Planta de Ácido Sulfúrico</h1>
-                <p class="text-lg font-semibold">${fechaBitacora} - Turno: ${turnoNombre}</p>
-                <p class="text-sm">Supervisor saliente: <strong>${supervisorNombre}</strong> - Grupo: <input type="text" class="border rounded px-1 w-16" value="${grupo}" id="grupo-editable"></p>
+            <div class="text-center mb-2 border-b border-gray-300 pb-1">
+                <h1 style="font-size: 14px; font-weight: bold;">Entrega de Turno - Planta de Ácido Sulfúrico</h1>
+                <p style="font-size: 11px;">${fechaBitacora} – Turno: ${turnoNombre}</p>
+                <p style="font-size: 10px;">Supervisor saliente: <strong>${supervisorNombre}</strong> – Grupo: <strong>${grupo}</strong></p>
             </div>
 
-            <!-- Área 310 -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Área 310 - Tanque de Producción</h2>
-                <textarea class="w-full border rounded p-1 text-sm" rows="2" placeholder="Observaciones..."></textarea>
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Área 310 – Tanque de Producción</div>
+                <textarea class="w-full" style="border:1px solid #999; height:26px; font-size:9px;" placeholder="Observaciones..."></textarea>
             </div>
 
-            <!-- Área 430 - Niveles de azufre con acidez -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Área 430 - Tanques de Azufre</h2>
-                <table class="w-full text-sm border">
-                    <thead><tr class="bg-gray-300"><th class="p-1 border">Tanque</th><th class="p-1 border">Nivel (cm)</th><th class="p-1 border">Toneladas</th><th class="p-1 border">Acidez (%)</th></tr></thead>
-                    <tbody>
-                        <tr><td class="p-1 border">TQ-A</td><td class="p-1 border"><input type="number" step="0.1" class="nivel-cm w-full border rounded px-1" data-tq="A" placeholder="cm"></td><td class="p-1 border"><span id="ton-a">0.00</span></td><td class="p-1 border"><input type="number" step="0.01" class="border rounded px-1 w-full" placeholder="%"></td></tr>
-                        <tr><td class="p-1 border">TQ-B</td><td class="p-1 border"><input type="number" step="0.1" class="nivel-cm w-full border rounded px-1" data-tq="B" placeholder="cm"></td><td class="p-1 border"><span id="ton-b">0.00</span></td><td class="p-1 border"><input type="number" step="0.01" class="border rounded px-1 w-full" placeholder="%"></td></tr>
-                        <tr><td class="p-1 border">TQ-C</td><td class="p-1 border"><input type="number" step="0.1" class="nivel-cm w-full border rounded px-1" data-tq="C" placeholder="cm"></td><td class="p-1 border"><span id="ton-c">0.00</span></td><td class="p-1 border"><input type="number" step="0.01" class="border rounded px-1 w-full" placeholder="%"></td></tr>
-                        <tr><td class="p-1 border">TQ-D</td><td class="p-1 border"><input type="number" step="0.1" class="nivel-cm w-full border rounded px-1" data-tq="D" placeholder="cm"></td><td class="p-1 border"><span id="ton-d">0.00</span></td><td class="p-1 border"><input type="number" step="0.01" class="border rounded px-1 w-full" placeholder="%"></td></tr>
-                    </tbody>
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Área 430 – Tanques de Azufre</div>
+                <table style="width:100%; border-collapse: collapse; font-size:9px;">
+                    <tr style="background:#f3f4f6;"><th style="border:1px solid #999; padding:2px;">Tanque</th><th style="border:1px solid #999; padding:2px;">Nivel (cm)</th><th style="border:1px solid #999; padding:2px;">Toneladas</th><th style="border:1px solid #999; padding:2px;">Acidez (%)</th></tr>
+                    ${['A','B','C','D'].map(tq => `<tr>
+                        <td style="border:1px solid #999; padding:2px;">TQ-${tq}</td>
+                        <td style="border:1px solid #999; padding:2px;"><input type="number" step="0.1" class="nivel-cm w-full" data-tq="${tq}" style="border:0; font-size:9px;"></td>
+                        <td style="border:1px solid #999; padding:2px;"><span id="ton-${tq.toLowerCase()}">0.00</span></td>
+                        <td style="border:1px solid #999; padding:2px;"><input type="number" step="0.01" style="border:0; font-size:9px; width:100%;"></td>
+                    </tr>`).join('')}
                 </table>
-                <p class="text-xs mt-1">Conversión: 250 cm ≈ 108 toneladas (0.432 ton/cm)</p>
+                <p style="font-size:8px; color:#666;">Conversión: 250 cm ≈ 108 toneladas (0.432 ton/cm)</p>
             </div>
 
-            <!-- Áreas 420/120 -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Áreas 420 / 120 y Salas de Máquinas</h2>
-                <p class="text-sm"><strong>Sala de Compresores:</strong> <input type="text" class="border rounded px-1 w-3/4"></p>
-                <p class="text-sm"><strong>Sala de Sopladores:</strong> <input type="text" class="border rounded px-1 w-3/4"></p>
-                <p class="text-sm"><strong>Área 120:</strong> <input type="text" class="border rounded px-1 w-3/4"></p>
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Áreas 420 / 120 y Salas de Máquinas</div>
+                <div style="border:1px solid #999; padding:3px; font-size:9px;">
+                    <div><strong>Sala de Compresores:</strong> <input type="text" style="border:0; border-bottom:1px solid #999; width:65%; font-size:9px;"></div>
+                    <div><strong>Sala de Sopladores:</strong> <input type="text" style="border:0; border-bottom:1px solid #999; width:66%; font-size:9px;"></div>
+                    <div><strong>Área 120:</strong> <input type="text" style="border:0; border-bottom:1px solid #999; width:76%; font-size:9px;"></div>
+                </div>
             </div>
 
-            <!-- Producción -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Producción del Turno</h2>
-                <p class="text-sm"><strong>Big Bags Fundidos:</strong> ${bigBags}</p>
-                <p class="text-sm"><strong>Toneladas de Ácido Producidas (aprox.):</strong> <input type="number" step="0.01" class="border rounded px-1 w-24"></p>
+            <div class="grid grid-cols-2 gap-1 mb-1">
+                <div>
+                    <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Producción del Turno</div>
+                    <div style="border:1px solid #999; padding:3px; font-size:9px;">
+                        Big Bags Fundidos: <strong>${bigBags}</strong><br>
+                        Toneladas Ácido (aprox.): <input type="number" step="0.01" style="border:0; border-bottom:1px solid #999; width:60px; font-size:9px;">
+                    </div>
+                </div>
+                <div>
+                    <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Análisis de Ácido</div>
+                    <div style="border:1px solid #999; padding:3px; font-size:9px;">
+                        Concentración: <strong>${promAcido}%</strong><br>
+                        Turbidez: <strong>${promNTU}</strong> NTU<br>
+                        Operador: <input type="text" style="border:0; border-bottom:1px solid #999; width:80px; font-size:9px;">
+                    </div>
+                </div>
             </div>
 
-            <!-- Análisis de Ácido -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Resultados de Análisis de Ácido</h2>
-                <p class="text-sm"><strong>Concentración promedio (%):</strong> ${promAcido}%</p>
-                <p class="text-sm"><strong>Turbidez promedio (NTU):</strong> ${promNTU}</p>
-                <p class="text-sm"><strong>Operador de análisis:</strong> <input type="text" class="border rounded px-1 w-1/2"></p>
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">pH Promedio por Equipo y Consumo de Agua</div>
+                <div style="border:1px solid #999; padding:3px; font-size:9px;">
+                    ${Object.entries(phPorEquipo).map(([e, {sum,count}]) => `${e}: <strong>${(sum/count).toFixed(2)}</strong>`).join(' | ') || 'Sin datos'}
+                    ${consumo.data?.length ? ` &nbsp;|&nbsp; Consumo promedio: <strong>${(consumo.data.reduce((s,c)=>s+c.valor_m3,0)/consumo.data.length).toFixed(2)}</strong> m³` : ''}
+                </div>
             </div>
 
-            <!-- Promedios de Parámetros Operativos -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Promedios de Parámetros Operativos</h2>
-                <ul class="text-sm list-disc list-inside">
-                    <li>pH promedio por equipo:</li>
-                </ul>
-                <table class="w-48 text-sm border mt-1">
-                    <thead><tr class="bg-gray-300"><th class="p-1 border">Equipo</th><th class="p-1 border">pH</th></tr></thead>
-                    <tbody>
-                        ${Object.entries(phPorEquipo).map(([equipo, { sum, count }]) => `
-                        <tr><td class="p-1 border">${equipo}</td><td class="p-1 border">${(sum / count).toFixed(2)}</td></tr>
-                        `).join('')}
-                    </tbody>
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Novedades y OTs del Turno</div>
+                <div style="border:1px solid #999; padding:3px; font-size:9px; min-height:34px;">
+                    ${novedades.data?.slice(0,4).map(n => `• [${new Date(n.fecha_novedad).toLocaleTimeString()}] ${n.tag_equipo_area}: ${n.descripcion}`).join('<br>') || 'Sin novedades.'}
+                    ${ordenes.data?.slice(0,3).map(o => `<br>• OT ${o.numero_ot} – ${o.titulo} (${o.estado})`).join('') || ''}
+                </div>
+            </div>
+
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Personal de Turno</div>
+                <table style="width:100%; border-collapse: collapse; font-size:9px;">
+                    ${Object.keys(personalPorRol).map(rolNombre => `
+                        <tr>
+                            <td style="border:1px solid #999; padding:2px; background:#f3f4f6; width:22%;"><strong>${rolNombre}</strong></td>
+                            <td style="border:1px solid #999; padding:2px;">${generarSelectPersonal(rolNombre)}</td>
+                        </tr>`).join('')}
                 </table>
-                <ul class="text-sm list-disc list-inside">
-                    <li>Consumo de agua promedio (m³): ${consumo.data?.length ? (consumo.data.reduce((s, c) => s + c.valor_m3, 0) / consumo.data.length).toFixed(2) : '--'}</li>
-                </ul>
             </div>
 
-            <!-- Novedades y OTs -->
-            <div class="mb-4">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Novedades y Órdenes de Trabajo</h2>
-                ${novedades.data?.length ? novedades.data.map(n => `<p class="text-sm">• [${new Date(n.fecha_novedad).toLocaleTimeString()}] ${n.tag_equipo_area}: ${n.descripcion}</p>`).join('') : '<p class="text-sm italic">Sin novedades en el turno.</p>'}
-                ${ordenes.data?.length ? ordenes.data.map(o => `<p class="text-sm">• OT ${o.numero_ot} - ${o.titulo} (Estado: ${o.estado})</p>`).join('') : '<p class="text-sm italic">Sin OTs en el turno.</p>'}
+            <div class="mb-1">
+                <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Acontecimientos del Turno</div>
+                <textarea class="w-full" style="border:1px solid #999; height:36px; font-size:9px;" placeholder="Describa los eventos relevantes..."></textarea>
             </div>
 
-            <!-- Personal de Turno y Acontecimientos -->
-            <div class="mb-4 border-t-2 border-gray-300 pt-3">
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1">Personal de Turno</h2>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div><strong>Supervisor:</strong> ${generarSelectPersonal('Supervisor')}</div>
-                    <div><strong>Panelista:</strong> ${generarSelectPersonal('Panelista')}</div>
-                    <div><strong>Operador 1:</strong> ${generarSelectPersonal('Operador 1')}</div>
-                    <div><strong>Operador 2:</strong> ${generarSelectPersonal('Operador 2')}</div>
-                    <div><strong>Operador 3:</strong> ${generarSelectPersonal('Operador 3')}</div>
-                    <div><strong>Paramedico:</strong> ${generarSelectPersonal('Paramedico')}</div>
-                    <div><strong>Inspector SSL:</strong> ${generarSelectPersonal('Inspector SSL')}</div>
+            <div class="mt-3 flex justify-between" style="font-size:10px;">
+                <div class="text-center" style="width:45%;">
+                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${supervisorNombre}</div>
+                    <div style="font-size:9px;">Supervisor Saliente</div>
                 </div>
-
-                <h2 class="text-lg font-bold bg-gray-200 px-2 py-1 mt-4">Acontecimientos del Turno</h2>
-                <textarea class="w-full border rounded p-2 text-sm" rows="4" placeholder="Describa los eventos relevantes ocurridos durante el turno..."></textarea>
-            </div>
-
-            <!-- Firmas -->
-            <div class="mt-8 flex justify-between">
-                <div class="text-center">
-                    <p class="font-bold">${supervisorNombre}</p>
-                    <p class="text-sm">Supervisor Saliente</p>
-                </div>
-                <div class="text-center">
-                    <p class="font-bold">${confirmada ? 'Confirmada por ' + (confirmanteId?.slice(0,8) || 'Usuario') : '___________________________'}</p>
-                    <p class="text-sm">Supervisor Entrante</p>
-                    ${confirmada ? `<p class="text-xs text-green-600">Confirmada el ${fechaConfirmacion}</p>` : ''}
+                <div class="text-center" style="width:45%;">
+                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${confirmada ? 'Confirmada por ' + (confirmanteId?.slice(0,8) || 'Usuario') : '&nbsp;'}</div>
+                    <div style="font-size:9px;">Supervisor Entrante</div>
+                    ${confirmada ? `<div style="font-size:8px; color:green;">${fechaConfirmacion}</div>` : ''}
                 </div>
             </div>
 
-            <div class="mt-6 text-center no-print flex justify-center space-x-4">
+            <div class="mt-3 text-center no-print">
                 <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg">🖨️ Imprimir Bitácora</button>
-                ${!confirmada && rol !== 'admin' ? `<button id="btn-confirmar-recepcion" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow-lg">✅ Confirmar Recepción</button>` : ''}
+                ${!confirmada && rol !== 'admin' ? `<button id="btn-confirmar-recepcion" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow-lg ml-2">✅ Confirmar Recepción</button>` : ''}
             </div>
         </div>`;
 
         contenedor.innerHTML = html;
 
-        // Conversión cm -> toneladas
         document.querySelectorAll('.nivel-cm').forEach(input => {
             input.addEventListener('input', function() {
                 const cm = parseFloat(this.value) || 0;
@@ -300,13 +272,12 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
             });
         });
 
-        // Permitir escribir nombre personalizado si se elige "Otro"
         document.querySelectorAll('.select-personal').forEach(select => {
             select.addEventListener('change', function() {
                 if (this.value === 'OTRO') {
                     const input = document.createElement('input');
                     input.type = 'text';
-                    input.className = 'border rounded px-1 w-full mt-1';
+                    input.className = 'w-full bg-slate-900 border border-slate-700 rounded p-1 text-white text-xs mt-1';
                     input.placeholder = 'Especifique...';
                     this.parentNode.appendChild(input);
                 }
@@ -315,7 +286,7 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
 
         document.getElementById('btn-confirmar-recepcion')?.addEventListener('click', async () => {
             if (!confirm('¿Confirma que ha recibido y revisado la entrega de turno? Esta acción no se puede deshacer.')) return;
-            
+
             const { error: updateError } = await supabase.from('entregas_turno')
                 .update({
                     confirmada: true,
@@ -329,7 +300,7 @@ async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNom
                 return;
             }
 
-            alert('Recepción confirmada exitosamente. Se ha cerrado el ciclo de entrega de turno.');
+            alert('Recepción confirmada exitosamente.');
             cargarBitacora();
         });
 
