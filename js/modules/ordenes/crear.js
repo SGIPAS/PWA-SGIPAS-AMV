@@ -85,7 +85,7 @@ export async function renderizarCrear(rol) {
                 </div>
                 <div class="flex items-center space-x-6 flex-wrap gap-2">
                     <label class="flex items-center text-slate-300">
-                        <input type="checkbox" id="ot-req-pts" class="h-4 w-4 text-blue-600 bg-slate-700 border-slate-600 rounded">
+                        <input type="checkbox" id="ot-req-pts" class="h-4 w-4 text-blue-600 bg-slate-700 border-slate-600 rounded" checked>
                         <span class="ml-2">Requiere PTS</span>
                     </label>
                     <label class="flex items-center text-slate-300">
@@ -97,8 +97,8 @@ export async function renderizarCrear(rol) {
                         <span class="ml-2">Es parada de planta</span>
                     </label>
                 </div>
-                <div id="bloque-novedades" class="hidden bg-slate-900 p-3 rounded border border-slate-700">
-                    <p class="text-sm font-semibold text-slate-300 mb-2">Novedades pendientes a vincular</p>
+                <div id="bloque-novedades" class="bg-slate-900 p-3 rounded border border-slate-700">
+                    <p id="titulo-novedades" class="text-sm font-semibold text-slate-300 mb-2">Novedades pendientes a vincular (opcional)</p>
                     <div class="max-h-60 overflow-y-auto space-y-1">
                         ${(novedadesPendientes || []).map(n => `
                             <label class="flex items-start text-slate-300 text-xs">
@@ -116,8 +116,12 @@ export async function renderizarCrear(rol) {
     `;
 
     document.getElementById('ot-es-parada').addEventListener('change', (e) => {
-        document.getElementById('bloque-novedades').classList.toggle('hidden', !e.target.checked);
+        const titulo = document.getElementById('titulo-novedades');
+        titulo.textContent = e.target.checked
+            ? 'Novedades pendientes a vincular (se cerrarán al cerrar la OT de parada)'
+            : 'Novedades pendientes a vincular (opcional)';
     });
+
     document.getElementById('btn-cancelar-crear').addEventListener('click', irATablero);
     document.getElementById('form-nueva-ot').addEventListener('submit', async (e) => {
         e.preventDefault();
