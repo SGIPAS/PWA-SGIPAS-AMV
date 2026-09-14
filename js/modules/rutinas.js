@@ -21,6 +21,15 @@ function generarSelectPersonal(rol) {
         </select>`;
 }
 
+// ocp Hora en formato HH:MM 24h válido para columna time de PostgreSQL
+function horaActualPG() {
+    return new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+}
+
 export async function cargarRutinas() {
     const contenedor = document.getElementById('app-content');
     if (!contenedor) return;
@@ -76,19 +85,17 @@ export async function cargarRutinas() {
         </div>
     `;
 
+    // Selector "Otro" -> input manual
     document.querySelectorAll('.select-personal').forEach(sel => {
         sel.addEventListener('change', function() {
+            const prev = this.parentNode.querySelector('.input-otro');
+            if (prev) prev.remove();
             if (this.value === 'OTRO') {
-                const prev = this.parentNode.querySelector('.input-otro');
-                if (prev) prev.remove();
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.className = 'input-otro w-full bg-slate-900 border border-slate-700 rounded p-2 text-white mt-1 text-sm';
                 input.placeholder = 'Especifique nombre...';
                 this.parentNode.appendChild(input);
-            } else {
-                const prev = this.parentNode.querySelector('.input-otro');
-                if (prev) prev.remove();
             }
         });
     });
@@ -126,23 +133,29 @@ export async function cargarRutinas() {
     document.getElementById('barra-relleno').style.width = `${pct}%`;
     document.getElementById('progreso').textContent = `Progreso: ${completadas}/${total} (${pct}%)`;
 
+    // Botón "Completar"
     document.querySelectorAll('.btn-completar').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.id;
             const obs = prompt('Observaciones (opcional)') || '';
             const { data: { user } } = await supabase.auth.getUser();
-            await supabase.from('rutinas_ejecutadas').insert({
+            const { error } = await supabase.from('rutinas_ejecutadas').insert({
                 rutina_predefinida_id: id,
                 fecha: new Date().toISOString().split('T')[0],
-                hora_registro: new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
+                hora_registro: horaActualPG(),
                 completada: true,
                 observaciones: obs,
                 usuario_id: user.id
             });
+            if (error) {
+                alert('Error al guardar: ' + error.message);
+                return;
+            }
             cargarRutinas();
         });
     });
 
+    // Clic en el icono ✅ / ⬜
     document.querySelectorAll('.text-2xl').forEach(icon => {
         icon.addEventListener('click', async () => {
             const id = icon.dataset.id;
@@ -154,20 +167,28 @@ export async function cargarRutinas() {
                     .eq('fecha', new Date().toISOString().split('T')[0])
                     .maybeSingle();
                 if (ejec) {
-                    await supabase.from('rutinas_ejecutadas').delete().eq('id', ejec.id);
+                    const { error } = await supabase.from('rutinas_ejecutadas').delete().eq('id', ejec.id);
+                    if (error) {
+                        alert('Error al eliminar: ' + error.message);
+                        return;
+                    }
                     cargarRutinas();
                 }
             } else {
                 const obs = prompt('Observaciones (opcional)') || '';
                 const { data: { user } } = await supabase.auth.getUser();
-                await supabase.from('rutinas_ejecutadas').insert({
+                const { error } = await supabase.from('rutinas_ejecutadas').insert({
                     rutina_predefinida_id: id,
                     fecha: new Date().toISOString().split('T')[0],
-                    hora_registro: new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
+                    hora_registro: horaActualPG(),
                     completada: true,
                     observaciones: obs,
                     usuario_id: user.id
                 });
+                if (error) {
+                    alert('Error al guardar: ' + error.message);
+                    return;
+                }
                 cargarRutinas();
             }
         });
