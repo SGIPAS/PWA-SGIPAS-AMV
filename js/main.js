@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnSSL.addEventListener('click', () => import('./modules/ssl/index.js').then(m => m.cargarModuloSSL()));
     }
     if (btnBitacora && !btnBitacora.classList.contains('hidden')) {
-        btnBitacora.addEventListener('click', () => import('./modules/bitacora.js').then(m => m.cargarBitacora()));
+        btnBitacora.addEventListener('click', () => import('./modules/bitacora/index.js').then(m => m.cargarBitacora()));
     }
     if (btnReportes && !btnReportes.classList.contains('hidden')) {
         btnReportes.addEventListener('click', () => import('./modules/reportes/index.js').then(m => m.cargarReportes()));
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnLaboratorio.addEventListener('click', () => import('./modules/laboratorio/index.js').then(m => m.cargarLaboratorio()));
     }
     if (btnRutinas && !btnRutinas.classList.contains('hidden')) {
-        btnRutinas.addEventListener('click', () => import('./modules/rutinas.js').then(m => m.cargarRutinas()));
+        btnRutinas.addEventListener('click', () => import('./modules/rutinas/index.js').then(m => m.cargarRutinas()));
     }
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
