@@ -1,5 +1,5 @@
 // ocp Punto de entrada del módulo de Laboratorio
-import { supabase } from '../../supabase-client.js';
+import { obtenerRolVerificado } from '../../supabase-client.js';
 import { renderizarCertAcido } from './acido.js';
 import { renderizarCertAzufre } from './azufre.js';
 import { renderizarCertAgua } from './agua.js';
@@ -11,8 +11,12 @@ export async function cargarLaboratorio() {
     const contenedor = document.getElementById('app-content');
     if (!contenedor) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    currentUserRole = user?.user_metadata?.rol;
+    // ocp Obtener rol verificado desde perfiles
+    currentUserRole = await obtenerRolVerificado();
+    if (!currentUserRole || !['admin', 'analista'].includes(currentUserRole)) {
+        contenedor.innerHTML = `<p class="text-red-500 text-center mt-10">Acceso denegado. Solo analistas y administradores.</p>`;
+        return;
+    }
 
     contenedor.innerHTML = `
         <div class="mb-6">
@@ -44,10 +48,10 @@ export async function cargarLaboratorio() {
             activa.classList.add('border-blue-500', 'text-blue-500');
         }
         switch (name) {
-            case 'cert-acido': await renderizarCertAcido(tabContent, currentUserRole); break;
+            case 'cert-acido':  await renderizarCertAcido(tabContent, currentUserRole);  break;
             case 'cert-azufre': await renderizarCertAzufre(tabContent, currentUserRole); break;
-            case 'cert-agua': await renderizarCertAgua(tabContent, currentUserRole); break;
-            case 'disp-acido': await renderizarDispAcido(tabContent, currentUserRole); break;
+            case 'cert-agua':   await renderizarCertAgua(tabContent, currentUserRole);   break;
+            case 'disp-acido':  await renderizarDispAcido(tabContent, currentUserRole);  break;
         }
     }
 
