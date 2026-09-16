@@ -1,5 +1,5 @@
 // ocp Punto de entrada del módulo Rutinas Diarias
-import { supabase } from '../../supabase-client.js';
+import { obtenerRolVerificado } from '../../supabase-client.js';
 import { renderChecklist } from './checklist.js';
 import { renderAuditoria } from './auditoria.js';
 
@@ -7,8 +7,13 @@ export async function cargarRutinas() {
     const contenedor = document.getElementById('app-content');
     if (!contenedor) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const rol = user?.user_metadata?.rol;
+    // ocp Rol verificado desde perfiles
+    const rol = await obtenerRolVerificado();
+    if (!rol || !['admin', 'supervisor', 'operador'].includes(rol)) {
+        contenedor.innerHTML = `<p class="text-red-500 text-center mt-10">Acceso denegado.</p>`;
+        return;
+    }
+
     const puedeAuditar = ['admin', 'supervisor'].includes(rol);
 
     contenedor.innerHTML = `
