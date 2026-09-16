@@ -1,9 +1,9 @@
-// ocp Utilidades compartidas
-import { supabase } from '../../supabase-client.js';
+// ocp Utilidades compartidas del módulo Órdenes de Trabajo
+import { obtenerRolVerificado } from '../../supabase-client.js';
 
+// ocp Obtiene el rol verificado desde perfiles
 export async function obtenerRolUsuario() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.user_metadata?.rol || 'operador';
+    return (await obtenerRolVerificado()) || 'operador';
 }
 
 export function formatearFecha(fecha) {
@@ -21,5 +21,5 @@ export function badgeEstado(estado) {
         cerrada: 'text-green-400 bg-green-900/50',
         cancelada: 'text-red-400 bg-red-900/50'
     };
-    return `<span class="px-2 py-1 rounded text-xs font-semibold ${map[estado] || ''}">${estado.replace(/_/g, ' ')}</span>`;
+    return `<span class="px-2 py-1 rounded text-xs font-semibold ${map[estado] || ''}">${(estado || '').replace(/_/g, ' ')}</span>`;
 }
