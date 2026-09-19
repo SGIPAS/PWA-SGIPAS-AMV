@@ -1,39 +1,26 @@
-// ocp Acciones del administrador: toggle estado, reset password, eliminar
+// ocp Acciones del administrador sobre usuarios
 import { supabase } from '../../supabase-client.js';
 import { renderizarLista } from './lista.js';
 
 export async function toggleEstado(id, nuevoEstado) {
-    await supabase.from('perfiles').update({ estado: nuevoEstado }).eq('id', id);
-}
-
-export async function resetearPassword(id) {
-    const nuevaPassword = generarPasswordTemporal();
-    try {
-        const { data, error } = await supabase.functions.invoke('reset-password', {
-            body: { user_id: id, new_password: nuevaPassword }
-        });
-        if (error) throw error;
-        alert(`Contraseña restablecida. La nueva contraseña temporal es: ${nuevaPassword}\n\nComunique esto al usuario.`);
-    } catch (err) {
-        // Si la Edge Function no existe, mostramos la contraseña y sugerimos cambiarla manualmente
-        if (err.message?.includes('function not found') || err.message?.includes('404')) {
-            alert(`No se pudo conectar con la función de restablecimiento. La contraseña temporal sugerida es: ${nuevaPassword}\n\nPor favor, comuníquesela al usuario y luego cámbiela desde el panel de Supabase.`);
-        } else {
-            alert('Error al restablecer contraseña: ' + err.message);
-        }
+    const { error } = await supabase.rpc('admin_actualizar_usuario', {
+        p_user_id: id,
+        p_rol: null,   // no cambiar el rol
+        p_estado: nuevoEstado
+    });
+    if (error) {
+        alert('Error al cambiar estado: ' + error.message);
     }
 }
 
-export async function eliminarUsuario(id) {
-    if (!confirm('¿Eliminar permanentemente este usuario?')) return;
-    await supabase.from('perfiles').delete().eq('id', id);
-    alert('Usuario eliminado del sistema.');
-    renderizarLista();
-}
-
-function generarPasswordTemporal(length = 10) {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
-    let pass = '';
-    for (let i = 0; i < length; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    return pass;
+// Nota: resetear contraseña requiere service_role, por lo que se hace
+// desde el Dashboard de Supabase. Se mantiene el botón como recordatorio.
+export async function resetearPassword(id) {
+    alert(
+        'Para resetear la contraseña de un usuario:\n\n' +
+        '1. Abre el panel de Supabase → Authentication → Users\n' +
+        '2. Busca el email del usuario\n' +
+        '3. Haz clic en los tres puntos → "Send password recovery"\n\n' +
+        'El usuario recibirá un email para crear una nueva contraseña.'
+    );
 }
