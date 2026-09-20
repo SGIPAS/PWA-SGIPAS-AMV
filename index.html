@@ -5,11 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SGI Planta de Ácido - SGIPAS</title>
 
+    <!-- ocp Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <!-- ocp ==================================================== -->
+    <!-- ocp ONESIGNAL WEB PUSH SDK v16 — NO BORRAR NI MOVER      -->
+    <!-- ocp ==================================================== -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                await OneSignal.init({
+                    
+                    appId: "b624c272-9ab6-44fe-af9d-1e5ff7128fca",
+                    notifyButton: { enable: false },
+                    allowLocalhostAsSecureOrigin: false
+                });
+                console.log('✅ OneSignal inicializado correctamente');
+            } catch (e) {
+                console.error('❌ OneSignal init falló:', e);
+            }
+        });
+    </script>
 
     <link rel="manifest" href="/manifest.json">
     <style>
@@ -28,10 +50,8 @@
         @media print {
             #sidebar, #menu-toggle { display: none !important; }
             body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
-
             #app-content, #app-content * { visibility: hidden; }
             [id$="-print"], [id$="-print"] * { visibility: visible !important; }
-
             [id$="-print"] {
                 position: absolute !important;
                 left: 0 !important;
@@ -44,9 +64,7 @@
                 background: #fff !important;
                 color: #000 !important;
             }
-
             @page { size: letter portrait; margin: 0.5cm; }
-
             .firma, .no-break { page-break-inside: avoid !important; }
             tr { page-break-inside: avoid; }
             .no-print { display: none !important; }
@@ -95,12 +113,6 @@
     </main>
 
     <script type="module" src="js/main.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('SW registrado:', reg.scope))
-          .catch(err => console.log('SW falló:', err));
-      }
-    </script>
+    <!-- ocp sw.js ELIMINADO: OneSignal maneja su propio Service Worker -->
 </body>
 </html>
