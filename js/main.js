@@ -103,7 +103,6 @@ function abrirCambioPassword() {
             return;
         }
 
-        // ocp Validación OWASP
         const errores = [];
         if (password.length < 12) errores.push('mínimo 12 caracteres');
         if (!/[a-z]/.test(password)) errores.push('una minúscula');
@@ -118,7 +117,6 @@ function abrirCambioPassword() {
             return;
         }
 
-        // Re-autenticar con la contraseña actual antes de cambiarla
         const { data: { user } } = await supabase.auth.getUser();
         const { error: reauthError } = await supabase.auth.signInWithPassword({
             email: user.email,
@@ -147,7 +145,6 @@ function abrirCambioPassword() {
 // ocp Cargar el panel de indicadores para visitantes (sin sesión)
 async function cargarDashboardVisitante() {
     const sidebarEl = document.getElementById('sidebar');
-    const footerEl = document.getElementById('sidebar-footer');
     if (sidebarEl) sidebarEl.classList.add('hidden');
 
     const appContent = document.getElementById('app-content');
@@ -163,17 +160,97 @@ async function cargarDashboardVisitante() {
         if (appContent) appContent.innerHTML = '<p class="text-red-500">Error al cargar el panel.</p>';
     }
 
-    // Verificar si ya existe un botón de login (evitar duplicados)
     if (document.getElementById('btn-login-visitante')) return;
 
     const btnLogin = document.createElement('button');
     btnLogin.id = 'btn-login-visitante';
     btnLogin.className = 'fixed top-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg';
     btnLogin.textContent = 'Iniciar Sesión';
-    btnLogin.addEventListener('click', () => {
-        mostrarLogin();
-    });
+    btnLogin.addEventListener('click', () => mostrarLogin());
     document.body.appendChild(btnLogin);
+}
+
+// ocp ================================================================
+// ocp ONESIGNAL — Solicitud automática de permiso y registro de dispositivo
+// ocp ================================================================
+async function configurarOneSignal(user, rol) {
+    // Solo pedir permiso a roles operativos (nunca a visitantes)
+    const rolesConPush = ['admin','supervisor','operador','ejecutor','inspector_ssl','analista'];
+    if (!rolesConPush.includes(rol)) {
+        console.log('Rol sin push habilitado:', rol);
+        return;
+    }
+
+    try {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        OneSignalDeferred.push(async function (OneSignal) {
+            try {
+                if (!OneSignal || !OneSignal.User) {
+                    console.warn('OneSignal SDK no inicializado (verifica el App ID en index.html)');
+                    return;
+                }
+
+                console.log('📱 OneSignal listo. Permiso actual:', OneSignal.Notifications.permission);
+
+                // 1. Pedir permiso automáticamente si no lo tenemos
+                if (OneSignal.Notifications.permission === 'default') {
+                    console.log('Solicitando permiso de notificaciones...');
+                    const granted = await OneSignal.Notifications.requestPermission();
+                    console.log('Permiso concedido:', granted);
+                    if (!granted) {
+                        console.warn('Usuario rechazó las notificaciones');
+                        return;
+                    }
+                }
+
+                if (OneSignal.Notifications.permission !== 'granted') {
+                    console.warn('Permiso no concedido:', OneSignal.Notifications.permission);
+                    return;
+                }
+
+                // 2. Asociar dispositivo al usuario logueado (external_id)
+                try {
+                    await OneSignal.login(user.id);
+                    console.log('✅ OneSignal.login() OK para', user.id);
+                } catch (e) {
+                    console.warn('OneSignal.login() falló (no crítico):', e.message);
+                }
+
+                // 3. Esperar a que el playerId esté disponible (puede tardar 500ms-3s)
+                let playerId = OneSignal.User.PushSubscription.id;
+                let intentos = 0;
+                while (!playerId && intentos < 10) {
+                    await new Promise(r => setTimeout(r, 500));
+                    playerId = OneSignal.User.PushSubscription.id;
+                    intentos++;
+                }
+
+                if (!playerId) {
+                    console.warn('No se obtuvo playerId después de 5s');
+                    return;
+                }
+
+                console.log('✅ PlayerId:', playerId);
+                localStorage.setItem('playerId', playerId);
+
+                // 4. Guardar en Supabase
+                const { error } = await supabase.from('dispositivos').upsert(
+                    { usuario_id: user.id, player_id: playerId },
+                    { onConflict: 'usuario_id,player_id' }
+                );
+
+                if (error) {
+                    console.error('Error guardando dispositivo:', error.message);
+                } else {
+                    console.log('✅ Dispositivo registrado en Supabase');
+                }
+            } catch (e) {
+                console.error('Error en OneSignal:', e);
+            }
+        });
+    } catch (e) {
+        console.error('Error configurando OneSignalDeferred:', e);
+    }
 }
 
 // ocp Inicio de la aplicación
@@ -201,7 +278,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Obtener rol VERIFICADO desde perfiles
     const rol = await obtenerRolVerificado();
     if (!rol) {
-        // Usuario sin perfil o inactivo → cerrar sesión
         alert('Tu cuenta no está activa o no tiene perfil asignado. Contacta al administrador.');
         await supabase.auth.signOut();
         invalidarCacheRol();
@@ -290,29 +366,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 8. Iniciar presencia con datos verificados
+    // 8. Iniciar presencia
     await iniciarPresencia(user.id, perfil?.nombre_completo || user.email, rol, perfil?.departamento);
 
-    // 9. Registrar playerId de OneSignal
-    try {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(async function (OneSignal) {
-            try {
-                const playerId = OneSignal.User?.PushSubscription?.id;
-                if (playerId && user) {
-                    localStorage.setItem('playerId', playerId);
-                    const { error } = await supabase.from('dispositivos').upsert(
-                        { usuario_id: user.id, player_id: playerId },
-                        { onConflict: 'usuario_id,player_id' }
-                    );
-                    if (error) console.warn('No se pudo registrar dispositivo:', error.message);
-                    else console.log('Dispositivo registrado:', playerId);
-                }
-            } catch (e) {
-                console.warn('Error obteniendo playerId:', e.message);
-            }
-        });
-    } catch (e) { /* noop */ }
+    // 9. Configurar OneSignal CON solicitud automática de permiso
+    await configurarOneSignal(user, rol);
 
     // 10. Cargar módulo inicial
     import('./modules/dashboard/index.js')
