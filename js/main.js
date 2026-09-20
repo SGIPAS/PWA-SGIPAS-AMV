@@ -172,9 +172,9 @@ async function cargarDashboardVisitante() {
 
 // ocp ================================================================
 // ocp ONESIGNAL — Solicitud automática de permiso y registro de dispositivo
+// ocp SDK v16: Notifications.permission es boolean, permissionNative es string
 // ocp ================================================================
 async function configurarOneSignal(user, rol) {
-    // Solo pedir permiso a roles operativos (nunca a visitantes)
     const rolesConPush = ['admin','supervisor','operador','ejecutor','inspector_ssl','analista'];
     if (!rolesConPush.includes(rol)) {
         console.log('Rol sin push habilitado:', rol);
@@ -190,10 +190,19 @@ async function configurarOneSignal(user, rol) {
                     return;
                 }
 
-                console.log('📱 OneSignal listo. Permiso actual:', OneSignal.Notifications.permission);
+                // ocp Estado real del permiso (v16): boolean + string nativo
+                const tienePermisoBool = OneSignal.Notifications.permission;
+                const permisoNativo = OneSignal.Notifications.permissionNative;
 
-                // 1. Pedir permiso automáticamente si no lo tenemos
-                if (OneSignal.Notifications.permission === 'default') {
+                console.log('📱 OneSignal listo. Permiso (bool):', tienePermisoBool, '| Nativo:', permisoNativo);
+
+                // ocp Si NO tiene permiso, solicitarlo
+                if (tienePermisoBool !== true && permisoNativo !== 'granted') {
+                    if (permisoNativo === 'denied') {
+                        console.warn('⚠️ El usuario bloqueó las notificaciones. Debe habilitarlas manualmente desde la barra de direcciones del navegador.');
+                        return;
+                    }
+
                     console.log('Solicitando permiso de notificaciones...');
                     const granted = await OneSignal.Notifications.requestPermission();
                     console.log('Permiso concedido:', granted);
@@ -201,14 +210,11 @@ async function configurarOneSignal(user, rol) {
                         console.warn('Usuario rechazó las notificaciones');
                         return;
                     }
+                } else {
+                    console.log('✅ Permiso ya concedido previamente');
                 }
 
-                if (OneSignal.Notifications.permission !== 'granted') {
-                    console.warn('Permiso no concedido:', OneSignal.Notifications.permission);
-                    return;
-                }
-
-                // 2. Asociar dispositivo al usuario logueado (external_id)
+                // ocp Asociar dispositivo al usuario logueado (external_id)
                 try {
                     await OneSignal.login(user.id);
                     console.log('✅ OneSignal.login() OK para', user.id);
@@ -216,7 +222,7 @@ async function configurarOneSignal(user, rol) {
                     console.warn('OneSignal.login() falló (no crítico):', e.message);
                 }
 
-                // 3. Esperar a que el playerId esté disponible (puede tardar 500ms-3s)
+                // ocp Esperar a que el playerId esté disponible (500ms - 3s)
                 let playerId = OneSignal.User.PushSubscription.id;
                 let intentos = 0;
                 while (!playerId && intentos < 10) {
@@ -233,7 +239,7 @@ async function configurarOneSignal(user, rol) {
                 console.log('✅ PlayerId:', playerId);
                 localStorage.setItem('playerId', playerId);
 
-                // 4. Guardar en Supabase
+                // ocp Guardar en Supabase
                 const { error } = await supabase.from('dispositivos').upsert(
                     { usuario_id: user.id, player_id: playerId },
                     { onConflict: 'usuario_id,player_id' }
