@@ -1,5 +1,6 @@
 // ocp Generación de la bitácora imprimible
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 import { personalPorRol, generarSelectPersonal, enlazarSelectPersonalBitacora } from './utils.js';
 
 export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, turnoNombre, entrega, supervisorNombre, grupo) {
@@ -37,7 +38,7 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
             });
         }
 
-        // Cumplimiento de rutinas del día
+        // Cumplimiento de rutinas
         const hoyFecha = new Date().toISOString().split('T')[0];
         const diaSem = new Date().getDay();
         const { data: predef } = await supabase.from('rutinas_predefinidas').select('id')
@@ -54,6 +55,12 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
         const rol = user.user_metadata?.rol;
         const fechaBitacora = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' });
 
+        // ocp Escapado de HTML en los campos dinámicos
+        const supervisorNombreSeguro = escapeHtml(supervisorNombre);
+        const grupoSeguro = escapeHtml(grupo);
+        const turnoSeguro = escapeHtml(turnoNombre);
+        const fechaBitacoraSegura = escapeHtml(fechaBitacora);
+
         let html = `
         <div id="bitacora-print" class="bg-white text-slate-800 p-3" style="font-size: 10px; line-height: 1.25;">
             <div style="width: 100%; margin-bottom: 6px; border-bottom: 2px solid #1e3a8a; padding-bottom: 3px;">
@@ -62,8 +69,8 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
 
             <div class="text-center mb-2 border-b border-gray-300 pb-1">
                 <h1 style="font-size: 14px; font-weight: bold;">Entrega de Turno - Planta de Ácido Sulfúrico</h1>
-                <p style="font-size: 11px;">${fechaBitacora} – Turno: ${turnoNombre}</p>
-                <p style="font-size: 10px;">Supervisor saliente: <strong>${supervisorNombre}</strong> – Grupo: <strong>${grupo}</strong></p>
+                <p style="font-size: 11px;">${fechaBitacoraSegura} – Turno: ${turnoSeguro}</p>
+                <p style="font-size: 10px;">Supervisor saliente: <strong>${supervisorNombreSeguro}</strong> – Grupo: <strong>${grupoSeguro}</strong></p>
             </div>
 
             <div class="mb-1">
@@ -115,7 +122,7 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
             <div class="mb-1">
                 <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">pH Promedio por Equipo y Consumo de Agua</div>
                 <div style="border:1px solid #999; padding:3px; font-size:9px;">
-                    ${Object.entries(phPorEquipo).map(([e, {sum,count}]) => `${e}: <strong>${(sum/count).toFixed(2)}</strong>`).join(' | ') || 'Sin datos'}
+                    ${Object.entries(phPorEquipo).map(([e, {sum,count}]) => `${escapeHtml(e)}: <strong>${(sum/count).toFixed(2)}</strong>`).join(' | ') || 'Sin datos'}
                     ${consumo.data?.length ? ` &nbsp;|&nbsp; Consumo promedio: <strong>${(consumo.data.reduce((s,c)=>s+c.valor_m3,0)/consumo.data.length).toFixed(2)}</strong> m³` : ''}
                 </div>
             </div>
@@ -123,8 +130,8 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
             <div class="mb-1">
                 <div style="background:#e5e7eb; padding: 2px 4px; font-weight:bold; font-size:10px; border:1px solid #999;">Novedades y OTs del Turno</div>
                 <div style="border:1px solid #999; padding:3px; font-size:9px; min-height:34px;">
-                    ${novedades.data?.slice(0,4).map(n => `• [${new Date(n.fecha_novedad).toLocaleTimeString()}] ${n.tag_equipo_area}: ${n.descripcion}`).join('<br>') || 'Sin novedades.'}
-                    ${ordenes.data?.slice(0,3).map(o => `<br>• OT ${o.numero_ot} – ${o.titulo} (${o.estado})`).join('') || ''}
+                    ${novedades.data?.slice(0,4).map(n => `• [${new Date(n.fecha_novedad).toLocaleTimeString()}] ${escapeHtml(n.tag_equipo_area)}: ${escapeHtml(n.descripcion)}`).join('<br>') || 'Sin novedades.'}
+                    ${ordenes.data?.slice(0,3).map(o => `<br>• OT ${escapeHtml(o.numero_ot)} – ${escapeHtml(o.titulo)} (${escapeHtml(o.estado)})`).join('') || ''}
                 </div>
             </div>
 
@@ -140,7 +147,7 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
                 <table style="width:100%; border-collapse: collapse; font-size:9px;">
                     ${Object.keys(personalPorRol).map(rolNombre => `
                         <tr>
-                            <td style="border:1px solid #999; padding:2px; background:#f3f4f6; width:22%;"><strong>${rolNombre}</strong></td>
+                            <td style="border:1px solid #999; padding:2px; background:#f3f4f6; width:22%;"><strong>${escapeHtml(rolNombre)}</strong></td>
                             <td style="border:1px solid #999; padding:2px;">${generarSelectPersonal(rolNombre)}</td>
                         </tr>`).join('')}
                 </table>
@@ -153,13 +160,13 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
 
             <div class="mt-3 flex justify-between" style="font-size:10px;">
                 <div class="text-center" style="width:45%;">
-                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${supervisorNombre}</div>
+                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${supervisorNombreSeguro}</div>
                     <div style="font-size:9px;">Supervisor Saliente</div>
                 </div>
                 <div class="text-center" style="width:45%;">
-                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${confirmada ? 'Confirmada por ' + (confirmanteId?.slice(0,8) || 'Usuario') : '&nbsp;'}</div>
+                    <div style="border-top:1px solid #000; margin-top:18px; padding-top:2px;">${confirmada ? 'Confirmada por ' + escapeHtml(confirmanteId?.slice(0,8) || 'Usuario') : '&nbsp;'}</div>
                     <div style="font-size:9px;">Supervisor Entrante</div>
-                    ${confirmada ? `<div style="font-size:8px; color:green;">${fechaConfirmacion}</div>` : ''}
+                    ${confirmada ? `<div style="font-size:8px; color:green;">${escapeHtml(fechaConfirmacion)}</div>` : ''}
                 </div>
             </div>
 
@@ -193,6 +200,6 @@ export async function generarBitacora(contenedor, user, fechaInicio, fechaFin, t
         });
 
     } catch (error) {
-        contenedor.innerHTML = `<div class="flex justify-center items-center h-full"><p class="text-red-500 text-xl">Error al generar la bitácora: ${error.message}</p></div>`;
+        contenedor.innerHTML = `<div class="flex justify-center items-center h-full"><p class="text-red-500 text-xl">Error al generar la bitácora: ${escapeHtml(error.message)}</p></div>`;
     }
 }
