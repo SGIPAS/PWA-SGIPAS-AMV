@@ -68,7 +68,7 @@ export async function cargarVistaCierres(otId, rol, contenedor) {
             }
 
             await enviarPushARoles(
-                ['ejecutor', 'inspector_ssl', 'directivos'],
+                ['admin', 'supervisor', 'ejecutor', 'inspector_ssl'],
                 `OT ${ot.numero_ot} cerrada por Operaciones.`
             );
 
