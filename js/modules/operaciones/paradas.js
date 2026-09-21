@@ -1,5 +1,6 @@
-// ocp Módulo de Paradas de Planta – ahora dentro de operaciones, con importación corregida
-import { supabase } from '../../supabase-client.js'; // ocp ruta corregida (../../)
+// ocp Módulo de Paradas de Planta
+import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function cargarParadas(contenedor, rol) {
     if (!['admin', 'supervisor'].includes(rol)) {
@@ -22,7 +23,6 @@ export async function cargarParadas(contenedor, rol) {
             </div>
         </div>
 
-        <!-- Modal para registrar parada -->
         <div id="modal-parada" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
             <div class="bg-slate-800 rounded-lg shadow-2xl border border-slate-700 w-full max-w-md p-6">
                 <h2 class="text-xl font-bold text-white mb-4">Registrar Parada</h2>
@@ -120,7 +120,7 @@ async function cargarListaParadas() {
         .limit(20);
 
     if (error) {
-        container.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+        container.innerHTML = `<p class="text-red-500">Error: ${escapeHtml(error.message)}</p>`;
         return;
     }
     if (!data || !data.length) {
@@ -147,10 +147,10 @@ async function cargarListaParadas() {
         const duracion = ((new Date(p.fecha_fin) - new Date(p.fecha_inicio)) / 3600000).toFixed(1);
         html += `
             <tr class="hover:bg-slate-700/50">
-                <td class="p-3">${inicio}</td>
-                <td class="p-3">${fin}</td>
+                <td class="p-3">${escapeHtml(inicio)}</td>
+                <td class="p-3">${escapeHtml(fin)}</td>
                 <td class="p-3">${duracion} h</td>
-                <td class="p-3">${p.motivo}</td>
+                <td class="p-3">${escapeHtml(p.motivo)}</td>
             </tr>
         `;
     });
