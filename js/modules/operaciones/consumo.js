@@ -1,6 +1,7 @@
 // ocp Registro de consumo de agua con exportación a Excel
 import { supabase } from '../../supabase-client.js';
 import { exportarAExcel } from '../reportes/utils.js';  // función compartida
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarConsumo(contenedor, rol) {
     contenedor.innerHTML = `
