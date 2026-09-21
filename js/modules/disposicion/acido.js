@@ -1,5 +1,6 @@
 // ocp Disposición de Ácido (baritanques, devolución a sulfato)
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarDisposicionAcido(contenedor) {
     contenedor.innerHTML = `
@@ -87,9 +88,9 @@ async function cargarListaAcido() {
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin movimientos.</p>'; return; }
     container.innerHTML = data.map(d => `
         <div class="bg-slate-800 p-2 rounded text-sm flex justify-between">
-            <span>${d.fecha} - ${d.subtipo === 'retencion' ? '🔻 Retenido' : '🔺 Devuelto'}</span>
+            <span>${escapeHtml(d.fecha)} - ${d.subtipo === 'retencion' ? '🔻 Retenido' : '🔺 Devuelto'}</span>
             <span class="font-bold">${d.cantidad} L</span>
-            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${d.observaciones}</p>` : ''}
+            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${escapeHtml(d.observaciones)}</p>` : ''}
         </div>
     `).join('');
 }
