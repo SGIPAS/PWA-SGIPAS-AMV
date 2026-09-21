@@ -1,5 +1,6 @@
-// ocp Submódulo de Reporte de Novedades – con notificación push y anulación de registros
+// ocp Submódulo de Reporte de Novedades – con push y anulación de registros
 import { supabase } from '../../supabase-client.js';
+import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
 import { enviarPushARoles } from '../../push.js';
 
 export async function renderizarNovedades(contenedor, rol) {
@@ -86,7 +87,6 @@ export async function renderizarNovedades(contenedor, rol) {
         const { error } = await supabase.from('novedades').insert([payload]);
         if (error) return alert('Error al guardar novedad: ' + error.message);
 
-        // Notificación push en ambos casos
         if (generarOT) {
             const { data: lastOT } = await supabase.from('ordenes_trabajo')
                 .select('numero_ot')
@@ -124,7 +124,6 @@ export async function renderizarNovedades(contenedor, rol) {
             }
         } else {
             alert('Novedad registrada.');
-            // Notificación a supervisores y coordinación (admin)
             await enviarPushARoles(
                 ['admin', 'supervisor'],
                 `📸 Nueva novedad reportada en ${tag}`
@@ -143,7 +142,7 @@ async function cargarListaNovedades(rol) {
     const container = document.getElementById('lista-novedades');
     const { data, error } = await supabase.from('novedades')
         .select('*')
-        .eq('anulado', false)  // Solo activas
+        .eq('anulado', false)
         .order('fecha_novedad', { ascending: false })
         .limit(10);
 
@@ -156,14 +155,20 @@ async function cargarListaNovedades(rol) {
         return;
     }
 
+    // ocp Generar URLs firmadas en paralelo
+    const urlsMap = {};
+    await Promise.all(data.map(async (n) => {
+        if (n.foto_url) urlsMap[n.id] = await getSignedUrl(n.foto_url);
+    }));
+
     container.innerHTML = data.map(n => `
         <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
             <div class="flex justify-between text-xs text-slate-400 mb-1">
-                <span class="font-semibold text-white">${n.tag_equipo_area}</span>
+                <span class="font-semibold text-white">${escapeHtml(n.tag_equipo_area)}</span>
                 <span>${new Date(n.fecha_novedad).toLocaleString()}</span>
             </div>
-            <p class="text-sm text-slate-300">${n.descripcion}</p>
-            ${n.foto_url ? `<img src="${supabase.storage.from('biblioteca').getPublicUrl(n.foto_url).data.publicUrl}" class="mt-2 max-h-24 rounded">` : ''}
+            <p class="text-sm text-slate-300">${escapeHtml(n.descripcion)}</p>
+            ${n.foto_url && urlsMap[n.id] ? `<img src="${urlsMap[n.id]}" class="mt-2 max-h-24 rounded">` : ''}
             ${rol === 'admin' ? `
             <div class="mt-2 text-right">
                 <button class="btn-anular bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded transition" data-id="${n.id}">Anular</button>
@@ -171,7 +176,6 @@ async function cargarListaNovedades(rol) {
         </div>
     `).join('');
 
-    // Evento para botones de anular (solo admin)
     document.querySelectorAll('.btn-anular').forEach(btn => {
         btn.addEventListener('click', async () => {
             const id = btn.dataset.id;
