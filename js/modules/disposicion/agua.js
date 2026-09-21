@@ -1,5 +1,6 @@
 // ocp Disposición de Agua Recuperada (vertida al suelo o reutilizada en torre)
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarDisposicionAgua(contenedor) {
     contenedor.innerHTML = `
@@ -76,9 +77,9 @@ async function cargarListaAgua() {
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
     container.innerHTML = data.map(d => `
         <div class="bg-slate-800 p-2 rounded text-sm flex justify-between">
-            <span>${d.fecha} - ${d.subtipo === 'vertedero' ? '🌊 Vertida' : '🔄 Recuperada a torre'}</span>
-            <span class="font-bold">${d.cantidad} ${d.unidad}</span>
-            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${d.observaciones}</p>` : ''}
+            <span>${escapeHtml(d.fecha)} - ${d.subtipo === 'vertedero' ? '🌊 Vertida' : '🔄 Recuperada a torre'}</span>
+            <span class="font-bold">${d.cantidad} ${escapeHtml(d.unidad)}</span>
+            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${escapeHtml(d.observaciones)}</p>` : ''}
         </div>
     `).join('');
 }
