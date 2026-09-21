@@ -1,5 +1,6 @@
-// ocp Registro de emisiones SO₂ con foto
+// ocp Registro de emisiones SO₂ con foto (URLs firmadas)
 import { supabase } from '../../supabase-client.js';
+import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarEmisiones(contenedor, rol) {
     contenedor.innerHTML = `
@@ -45,7 +46,6 @@ export async function renderizarEmisiones(contenedor, rol) {
         </div>
     `;
 
-    // Previsualización de imagen
     const fileInput = document.getElementById('foto-file-emis');
     const camInput = document.getElementById('foto-cam-emis');
     const preview = document.getElementById('preview-emis');
@@ -105,13 +105,22 @@ async function cargarListaEmisiones() {
         container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
         return;
     }
+
+    // ocp Generar URLs firmadas en paralelo
+    const urlsMap = {};
+    await Promise.all(data.map(async (r) => {
+        if (r.foto_url) {
+            urlsMap[r.id] = await getSignedUrl(r.foto_url);
+        }
+    }));
+
     container.innerHTML = data.map(r => `
         <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
             <div class="flex justify-between text-xs text-slate-400 mb-1">
-                <span class="font-semibold text-white">${r.fecha_registro}</span>
+                <span class="font-semibold text-white">${escapeHtml(r.fecha_registro)}</span>
                 <span>T:${r.temperatura}°C, O₂:${r.porcentaje_o2}%, SO₂:${r.ppm_so2}ppm</span>
             </div>
-            ${r.foto_url ? `<img src="${supabase.storage.from('biblioteca').getPublicUrl(r.foto_url).data.publicUrl}" class="mt-2 max-h-24 rounded">` : ''}
+            ${r.foto_url && urlsMap[r.id] ? `<img src="${urlsMap[r.id]}" class="mt-2 max-h-24 rounded">` : ''}
         </div>
     `).join('');
 }
