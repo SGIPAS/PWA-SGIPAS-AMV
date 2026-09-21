@@ -1,5 +1,6 @@
 // ocp Residuos Sólidos (coque, azufre contaminado, pastas ácidas, trapos, dotación, catalizador)
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 const TIPOS_SOLIDOS = [
     { value: 'coque', label: 'Coque (limpieza de tanques)' },
@@ -86,9 +87,9 @@ async function cargarListaSolidos() {
         const tipoLabel = TIPOS_SOLIDOS.find(t => t.value === d.subtipo)?.label || d.subtipo;
         return `
         <div class="bg-slate-800 p-2 rounded text-sm flex justify-between">
-            <span>${d.fecha} - ${tipoLabel}</span>
-            <span class="font-bold">${d.cantidad} ${d.unidad}</span>
-            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${d.observaciones}</p>` : ''}
+            <span>${escapeHtml(d.fecha)} - ${escapeHtml(tipoLabel)}</span>
+            <span class="font-bold">${d.cantidad} ${escapeHtml(d.unidad)}</span>
+            ${d.observaciones ? `<p class="text-xs text-slate-400 w-full">${escapeHtml(d.observaciones)}</p>` : ''}
         </div>`;
     }).join('');
 }
