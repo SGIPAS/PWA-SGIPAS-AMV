@@ -2,6 +2,7 @@
 import { supabase } from '../../supabase-client.js';
 import { irATablero, irADetalle } from './index.js';
 import { badgeEstado, formatearFecha } from './utils.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarListado(rol) {
     const contenedor = document.getElementById('app-content');
