@@ -1,6 +1,6 @@
 // ocp Operaciones CRUD y consultas para la Biblioteca Digital
 import { supabase } from '../../supabase-client.js';
-import { getSignedUrl, limpiarCacheUrls } from '../../utils-storage.js';
+import { getSignedUrl, getSignedUrlsBulk, limpiarCacheUrls, escapeHtml } from '../../utils-storage.js';
 
 // ================================================================
 // Consultas para el explorador
@@ -23,7 +23,7 @@ export async function cargarDocumentosPorCategoria(categoria, subcategoria, rol)
     if (totalEl) totalEl.textContent = count ?? 0;
 
     if (error) {
-        grid.innerHTML = `<p class="text-red-500 col-span-full text-center py-8">Error: ${error.message}</p>`;
+        grid.innerHTML = `<p class="text-red-500 col-span-full text-center py-8">Error: ${escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -32,7 +32,12 @@ export async function cargarDocumentosPorCategoria(categoria, subcategoria, rol)
         return;
     }
 
-    grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol)).join('');
+    // ocp Generar URLs firmadas en paralelo para todos los documentos
+    const urlsMap = await getSignedUrlsBulk(
+        data.filter(d => d.archivo_url).map(d => ({ id: d.id, path: d.archivo_url }))
+    );
+
+    grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol, urlsMap[doc.id])).join('');
     enlazarBotonesVerVideo(grid);
 }
 
@@ -59,7 +64,7 @@ export async function buscarDocumentos(texto, tipo, formato, rol) {
     if (totalEl) totalEl.textContent = count ?? 0;
 
     if (error) {
-        grid.innerHTML = `<p class="text-red-500 col-span-full text-center py-8">Error: ${error.message}</p>`;
+        grid.innerHTML = `<p class="text-red-500 col-span-full text-center py-8">Error: ${escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -68,7 +73,11 @@ export async function buscarDocumentos(texto, tipo, formato, rol) {
         return;
     }
 
-    grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol)).join('');
+    const urlsMap = await getSignedUrlsBulk(
+        data.filter(d => d.archivo_url).map(d => ({ id: d.id, path: d.archivo_url }))
+    );
+
+    grid.innerHTML = data.map(doc => crearTarjetaDocumento(doc, rol, urlsMap[doc.id])).join('');
     enlazarBotonesVerVideo(grid);
 }
 
@@ -89,7 +98,7 @@ function enlazarBotonesVerVideo(grid) {
     });
 }
 
-function crearTarjetaDocumento(doc, rol) {
+function crearTarjetaDocumento(doc, rol, urlFirmada) {
     const esAdmin = rol === 'admin';
     const iconos = {
         manual: '📘', procedimiento: '📙', formulario: '📄', registro: '📋',
@@ -106,25 +115,30 @@ function crearTarjetaDocumento(doc, rol) {
 
     const vigencia = doc.fecha_vigencia ? new Date(doc.fecha_vigencia).toLocaleDateString('es-VE') : '';
     const vigente = doc.fecha_vigencia ? new Date(doc.fecha_vigencia) >= new Date() : true;
-    const urlPublica = doc.archivo_url ? supabase.storage.from('biblioteca').getPublicUrl(doc.archivo_url).data.publicUrl : null;
+
+    // ocp Escapar HTML para prevenir XSS
+    const tituloSeguro = escapeHtml(doc.titulo);
+    const codigoSeguro = escapeHtml(doc.codigo || '');
+    const categoriaSegura = escapeHtml(doc.categoria);
+    const subcategoriaSegura = escapeHtml(doc.subcategoria || '');
 
     return `
         <div class="bg-slate-800 rounded-lg shadow-lg border-l-4 hover:bg-slate-700 transition p-4 flex flex-col" style="border-left-color: ${colorBorde};">
             <div class="flex items-start justify-between mb-2">
                 <span class="text-3xl">${icono}</span>
-                <span class="text-xs font-mono text-slate-500">${doc.codigo || ''}</span>
+                <span class="text-xs font-mono text-slate-500">${codigoSeguro}</span>
             </div>
-            <h3 class="text-sm font-semibold text-white mb-1 line-clamp-2" title="${doc.titulo}">${doc.titulo}</h3>
-            <p class="text-xs text-slate-400 mb-1">${doc.categoria}${doc.subcategoria ? ' / ' + doc.subcategoria : ''}</p>
+            <h3 class="text-sm font-semibold text-white mb-1 line-clamp-2" title="${tituloSeguro}">${tituloSeguro}</h3>
+            <p class="text-xs text-slate-400 mb-1">${categoriaSegura}${subcategoriaSegura ? ' / ' + subcategoriaSegura : ''}</p>
             <div class="flex items-center justify-between mt-2 text-xs">
                 <span class="px-2 py-0.5 rounded-full ${doc.estado === 'publicado' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}">v${doc.version_actual} ${vigente ? '' : '(obsoleto)'}</span>
                 <span class="text-slate-500">${vigencia ? 'Vence: ' + vigencia : ''}</span>
             </div>
             <div class="flex gap-2 mt-3">
-                ${urlPublica ?
+                ${urlFirmada ?
                     (doc.tipo === 'video' ?
-                        `<button class="text-xs text-blue-400 hover:underline ver-video" data-url="${urlPublica}">▶ Reproducir</button>`
-                        : `<a href="${urlPublica}" target="_blank" rel="noopener" class="text-xs text-blue-400 hover:underline">📥 Abrir / Descargar</a>`)
+                        `<button class="text-xs text-blue-400 hover:underline ver-video" data-url="${urlFirmada}">▶ Reproducir</button>`
+                        : `<a href="${urlFirmada}" target="_blank" rel="noopener" class="text-xs text-blue-400 hover:underline">📥 Abrir / Descargar</a>`)
                     : '<span class="text-xs text-slate-500">Sin archivo</span>'}
                 ${esAdmin ? `
                     <button onclick="window.editarDocumento('${doc.id}')" class="text-xs text-yellow-400 hover:underline ml-auto">✏️ Editar</button>
@@ -210,7 +224,6 @@ export async function manejarSubmitDocumento(rol) {
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
             const filePath = `documentos/${fileName}`;
 
-            // ★ CLAVE: pasar contentType para que el navegador sepa qué es
             const { error: uploadError } = await supabase.storage
                 .from('biblioteca')
                 .upload(filePath, file, {
@@ -299,6 +312,7 @@ export async function manejarSubmitDocumento(rol) {
         }
 
         cerrarModal();
+        limpiarCacheUrls();
         await cargarDocumentosPorCategoria(null, null, rol);
 
     } catch (err) {
@@ -322,6 +336,7 @@ async function confirmarEliminarDocumento(id) {
     if (error) {
         alert('Error al eliminar: ' + error.message);
     } else {
+        limpiarCacheUrls();
         await cargarDocumentosPorCategoria(null, null,
             (await supabase.auth.getUser()).data.user?.user_metadata?.rol || 'operador');
     }
