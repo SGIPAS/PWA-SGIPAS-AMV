@@ -1,5 +1,6 @@
 // ocp Operaciones CRUD y consultas para la Biblioteca Digital
 import { supabase } from '../../supabase-client.js';
+import { getSignedUrl, limpiarCacheUrls } from '../../utils-storage.js';
 
 // ================================================================
 // Consultas para el explorador
