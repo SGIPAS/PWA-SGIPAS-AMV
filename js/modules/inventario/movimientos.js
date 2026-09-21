@@ -1,5 +1,6 @@
-// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido (con certificación automática)
+// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido
 import { supabase } from '../../supabase-client.js';
+import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarMovimientos(contenedor) {
     contenedor.innerHTML = `
@@ -77,7 +78,6 @@ export async function renderizarMovimientos(contenedor) {
                     <option value="TQ-3104">TQ-3104</option>
                 </select>
             </div>
-            <!-- ocp Bloque de certificación automática -->
             <div id="certificacion-auto" class="hidden bg-slate-700 p-3 rounded border border-slate-600 text-sm">
                 <p class="text-slate-300 font-semibold mb-1">Certificación de Calidad (automática)</p>
                 <div id="cert-detalle" class="text-xs text-slate-400 space-y-1"></div>
@@ -100,7 +100,6 @@ export async function renderizarMovimientos(contenedor) {
         }
         camposDinamicos.innerHTML = html;
 
-        // Evento para buscar certificación al cambiar el tanque
         const tanqueSelect = document.getElementById('tanque-origen');
         const certDiv = document.getElementById('certificacion-auto');
         const certDetalle = document.getElementById('cert-detalle');
@@ -113,7 +112,6 @@ export async function renderizarMovimientos(contenedor) {
                     return;
                 }
 
-                // Buscar la última certificación vigente para ese tanque
                 const { data: certs } = await supabase
                     .from('certificaciones_acido')
                     .select('*')
@@ -131,7 +129,6 @@ export async function renderizarMovimientos(contenedor) {
                         <p>Vence: ${new Date(c.fecha_vigencia).toLocaleDateString('es-VE')}</p>
                     `;
                     certDiv.classList.remove('hidden');
-                    // Guardar datos para el payload
                     window.certificacionActual = c;
                 } else {
                     certDetalle.innerHTML = '<p class="text-red-400">Sin certificación vigente para este tanque</p>';
@@ -176,7 +173,6 @@ export async function renderizarMovimientos(contenedor) {
             payload.tanque_origen = document.getElementById('tanque-origen')?.value;
             if (!payload.tanque_origen) return alert('Seleccione el tanque de origen.');
 
-            // Incluir certificación automáticamente si existe
             if (window.certificacionActual) {
                 const cert = window.certificacionActual;
                 payload.observaciones = `Cert: Conc=${cert.concentracion}%, NTU=${cert.ntu ?? '--'}, Fe=${cert.ppm_fe ?? '--'} ppm, Vence=${cert.fecha_vigencia}`;
@@ -210,16 +206,23 @@ export async function renderizarMovimientos(contenedor) {
         const { data, error } = await supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(10);
         if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
         if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin movimientos.</p>'; return; }
+
+        // ocp URLs firmadas en paralelo
+        const urlsMap = {};
+        await Promise.all(data.map(async (m) => {
+            if (m.foto_url) urlsMap[m.id] = await getSignedUrl(m.foto_url);
+        }));
+
         container.innerHTML = data.map(m => `
             <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
                 <div class="flex justify-between text-xs text-slate-400 mb-1">
-                    <span class="font-semibold text-white">${m.tipo_movimiento.replace(/_/g, ' ')}</span>
+                    <span class="font-semibold text-white">${escapeHtml(m.tipo_movimiento.replace(/_/g, ' '))}</span>
                     <span>${new Date(m.fecha_movimiento).toLocaleString()}</span>
                 </div>
                 <p class="text-sm text-slate-300">Peso: ${m.peso_neto ?? m.toneladas_despachadas ?? '-'} ton | Acidez: ${m.acidez ?? '-'}%</p>
-                ${m.tanque_origen ? `<p class="text-xs text-slate-400">Tanque origen: ${m.tanque_origen}</p>` : ''}
-                ${m.observaciones ? `<p class="text-xs text-slate-400">${m.observaciones}</p>` : ''}
-                ${m.foto_url ? `<img src="${supabase.storage.from('biblioteca').getPublicUrl(m.foto_url).data.publicUrl}" class="mt-2 max-h-24 rounded">` : ''}
+                ${m.tanque_origen ? `<p class="text-xs text-slate-400">Tanque origen: ${escapeHtml(m.tanque_origen)}</p>` : ''}
+                ${m.observaciones ? `<p class="text-xs text-slate-400">${escapeHtml(m.observaciones)}</p>` : ''}
+                ${m.foto_url && urlsMap[m.id] ? `<img src="${urlsMap[m.id]}" class="mt-2 max-h-24 rounded">` : ''}
             </div>
         `).join('');
     }
