@@ -1,5 +1,6 @@
 // ocp Registro de pH de aguas con soda cáustica
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarPH(contenedor, rol) {
     contenedor.innerHTML = `
