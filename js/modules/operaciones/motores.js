@@ -1,5 +1,6 @@
 // ocp Módulo de Motores – registro simplificado con múltiples puntos por equipo
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarMotores(contenedor, rol) {
     // Obtener lista de equipos únicos desde puntos_medicion_motores
