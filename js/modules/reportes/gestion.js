@@ -1,5 +1,6 @@
 // ocp Informe de Gestión Operacional – checklist de parámetros con fechas independientes y cintillo
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 let checklistEstado = {};
 
