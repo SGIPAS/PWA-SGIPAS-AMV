@@ -1,5 +1,6 @@
 // ocp Registro de diferenciales de presión con selectores de equipo y punto
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarDiferenciales(contenedor, rol) {
     contenedor.innerHTML = `
