@@ -1,5 +1,6 @@
 // ocp Registro de análisis de ácido (% conc., NTU, densidad, temp)
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarAcido(contenedor, rol) {
     contenedor.innerHTML = `
