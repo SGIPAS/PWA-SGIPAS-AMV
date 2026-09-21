@@ -4,6 +4,7 @@ import { irATablero } from './index.js';
 import { badgeEstado, formatearFecha } from './utils.js';
 import { cargarVistaAvances } from './avances.js';
 import { cargarVistaCierres } from './cierres.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function mostrarDetalle(otId, rol) {
     const contenedor = document.getElementById('app-content');
