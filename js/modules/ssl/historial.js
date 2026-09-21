@@ -1,5 +1,6 @@
 // ocp Historial de PTS con botón de impresión formato FOR-SSL-005
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarHistorialPTS(contenedor, rol) {
     contenedor.innerHTML = `
