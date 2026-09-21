@@ -1,5 +1,6 @@
 // ocp Funciones de listado compartidas para Laboratorio
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 export async function renderizarListaCertificaciones(tabla, contenedorId, campos) {
     const container = document.getElementById(contenedorId);
