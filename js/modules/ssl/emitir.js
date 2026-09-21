@@ -2,6 +2,7 @@
 import { supabase } from '../../supabase-client.js';
 import { obtenerCorrelativo } from '../utils.js';
 import { enviarPushARoles } from '../../push.js';
+import { escapeHtml } from '../../utils-storage.js';
 
 const DEPARTAMENTOS_TRABAJADOR = [
     'operaciones', 'mecanico', 'electrico', 'instrumentacion',
