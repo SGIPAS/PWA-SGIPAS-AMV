@@ -1,20 +1,14 @@
-// ocp Utilidades para Supabase Storage con URLs firmadas
+// ocp Utilidades para Supabase Storage con URLs firmadas y escape de HTML
 import { supabase } from './supabase-client.js';
 
 // ocp Cache de URLs firmadas (evita regenerar en cada render)
 const _urlCache = new Map();
-const _CACHE_TTL = 55 * 60 * 1000; // 55 minutos (las URLs duran 60 min)
+const _CACHE_TTL = 55 * 60 * 1000; // 55 minutos (URLs duran 60 min)
 
-/**
- * Genera una URL firmada para un archivo del bucket biblioteca.
- * @param {string} path - Ruta del archivo dentro del bucket (ej: "documentos/1234_abc.pdf")
- * @param {number} expiresIn - Segundos de validez (default: 3600 = 1 hora)
- * @returns {Promise<string|null>} URL firmada o null si falla
- */
+// ocp Genera una URL firmada para un archivo del bucket biblioteca
 export async function getSignedUrl(path, expiresIn = 3600) {
     if (!path) return null;
 
-    // Verificar cache
     const cacheKey = `${path}:${expiresIn}`;
     const cached = _urlCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
@@ -31,7 +25,6 @@ export async function getSignedUrl(path, expiresIn = 3600) {
             return null;
         }
 
-        // Guardar en cache
         _urlCache.set(cacheKey, {
             url: data.signedUrl,
             expiresAt: Date.now() + _CACHE_TTL
@@ -44,11 +37,7 @@ export async function getSignedUrl(path, expiresIn = 3600) {
     }
 }
 
-/**
- * Genera múltiples URLs firmadas en paralelo.
- * @param {Array<{id: string, path: string}>} items - Array con id y path
- * @returns {Promise<Object>} Mapa id → URL firmada
- */
+// ocp Genera múltiples URLs firmadas en paralelo
 export async function getSignedUrlsBulk(items) {
     const results = {};
     await Promise.all(items.map(async (item) => {
@@ -57,7 +46,18 @@ export async function getSignedUrlsBulk(items) {
     return results;
 }
 
-// ocp Limpiar cache (útil al subir/actualizar archivos)
+// ocp Limpiar cache (útil al subir/actualizar/eliminar archivos)
 export function limpiarCacheUrls() {
     _urlCache.clear();
+}
+
+// ocp Escapar HTML para prevenir XSS en interpolaciones
+export function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
