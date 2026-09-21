@@ -34,6 +34,12 @@ export async function renderizarInformeEmisiones(contenedor) {
             .lte('fecha_registro', finSel)
             .order('fecha_registro', { ascending: true });
 
+        // ocp Generar URLs firmadas
+        const fotosConUrl = await Promise.all((fotos || []).map(async (f) => ({
+            ...f,
+            urlFirmada: await getSignedUrl(f.foto_url)
+        })));
+
         const { data: fotos } = await supabase
             .from('emisiones_so2')
             .select('foto_url, fecha_registro')
