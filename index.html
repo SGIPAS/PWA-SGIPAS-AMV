@@ -12,16 +12,13 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
-    <!-- ocp ==================================================== -->
-    <!-- ocp ONESIGNAL WEB PUSH SDK v16 — NO BORRAR NI MOVER      -->
-    <!-- ocp ==================================================== -->
+    <!-- ocp OneSignal Web Push SDK v16 -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(async function(OneSignal) {
             try {
                 await OneSignal.init({
-                    
                     appId: "b624c272-9ab6-44fe-af9d-1e5ff7128fca",
                     notifyButton: { enable: false },
                     allowLocalhostAsSecureOrigin: false
@@ -54,15 +51,9 @@
             [id$="-print"], [id$="-print"] * { visibility: visible !important; }
             [id$="-print"] {
                 position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                right: 0 !important;
-                margin: 0 !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                padding: 0.5cm !important;
-                background: #fff !important;
-                color: #000 !important;
+                left: 0 !important; top: 0 !important; right: 0 !important;
+                margin: 0 !important; max-width: 100% !important; width: 100% !important;
+                padding: 0.5cm !important; background: #fff !important; color: #000 !important;
             }
             @page { size: letter portrait; margin: 0.5cm; }
             .firma, .no-break { page-break-inside: avoid !important; }
@@ -96,7 +87,8 @@
             <button id="btn-nav-operaciones" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">📊</span> Control Operacional</button>
             <button id="btn-nav-ssl" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">⚠️</span> Seguridad (SSL)</button>
             <button id="btn-nav-biblioteca" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">📚</span> Biblioteca Documental</button>
-            <button id="btn-nav-mtto" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">🔧</span> Mantenimiento / O.T.</button>
+            <button id="btn-nav-ot" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">🔧</span> Órdenes de Trabajo</button>
+            <button id="btn-nav-mtto" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">🛠️</span> Mantenimiento y Activos</button>
             <button id="btn-nav-bitacora" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">📝</span> Bitácora de Turno</button>
             <button id="btn-nav-reportes" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">📄</span> Reportes</button>
             <button id="btn-nav-inventario" class="w-full flex items-center justify-start p-3 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-colors shadow-sm border border-slate-600"><span class="mr-3">📦</span> Inventario y Producción</button>
@@ -113,6 +105,5 @@
     </main>
 
     <script type="module" src="js/main.js"></script>
-    <!-- ocp sw.js ELIMINADO: OneSignal maneja su propio Service Worker -->
 </body>
 </html>
