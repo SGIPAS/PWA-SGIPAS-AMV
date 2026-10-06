@@ -1,4 +1,4 @@
-// ocp Motor principal del sistema – autenticación, roles, presencia, menú lateral, visitante
+// ocp Motor principal del sistema
 import { supabase, obtenerRolVerificado, obtenerPerfilActual, invalidarCacheRol } from './supabase-client.js';
 import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
@@ -10,6 +10,7 @@ function construirSidebar(rol) {
     const botones = {
         dashboard:     document.getElementById('btn-nav-dashboard'),
         biblioteca:    document.getElementById('btn-nav-biblioteca'),
+        ot:            document.getElementById('btn-nav-ot'),
         mantenimiento: document.getElementById('btn-nav-mtto'),
         operaciones:   document.getElementById('btn-nav-operaciones'),
         bitacora:      document.getElementById('btn-nav-bitacora'),
@@ -32,7 +33,8 @@ function construirSidebar(rol) {
     const visibilidad = {
         dashboard:     true,
         biblioteca:    true,
-        mantenimiento: ['admin', 'supervisor', 'ejecutor'].includes(rol),
+        ot:            ['admin', 'supervisor', 'ejecutor'].includes(rol),
+        mantenimiento: ['admin', 'supervisor', 'planificador', 'ejecutor'].includes(rol),
         operaciones:   ['admin', 'supervisor', 'operador'].includes(rol),
         bitacora:      ['admin', 'supervisor'].includes(rol),
         reportes:      ['admin', 'supervisor', 'directivos'].includes(rol),
@@ -148,9 +150,7 @@ async function cargarDashboardVisitante() {
     if (sidebarEl) sidebarEl.classList.add('hidden');
 
     const appContent = document.getElementById('app-content');
-    if (appContent) {
-        appContent.innerHTML = '<p class="text-slate-400">Cargando panel de indicadores...</p>';
-    }
+    if (appContent) appContent.innerHTML = '<p class="text-slate-400">Cargando panel de indicadores...</p>';
 
     try {
         const dashboard = await import('./modules/dashboard/index.js');
@@ -170,12 +170,9 @@ async function cargarDashboardVisitante() {
     document.body.appendChild(btnLogin);
 }
 
-// ocp ================================================================
-// ocp ONESIGNAL — Solicitud automática de permiso y registro de dispositivo
-// ocp SDK v16: Notifications.permission es boolean, permissionNative es string
-// ocp ================================================================
+// ocp OneSignal con solicitud automática de permiso
 async function configurarOneSignal(user, rol) {
-    const rolesConPush = ['admin','supervisor','operador','ejecutor','inspector_ssl','analista'];
+    const rolesConPush = ['admin','supervisor','operador','ejecutor','inspector_ssl','analista','planificador'];
     if (!rolesConPush.includes(rol)) {
         console.log('Rol sin push habilitado:', rol);
         return;
@@ -186,43 +183,28 @@ async function configurarOneSignal(user, rol) {
         OneSignalDeferred.push(async function (OneSignal) {
             try {
                 if (!OneSignal || !OneSignal.User) {
-                    console.warn('OneSignal SDK no inicializado (verifica el App ID en index.html)');
+                    console.warn('OneSignal SDK no inicializado');
                     return;
                 }
 
-                // ocp Estado real del permiso (v16): boolean + string nativo
                 const tienePermisoBool = OneSignal.Notifications.permission;
                 const permisoNativo = OneSignal.Notifications.permissionNative;
 
-                console.log('📱 OneSignal listo. Permiso (bool):', tienePermisoBool, '| Nativo:', permisoNativo);
-
-                // ocp Si NO tiene permiso, solicitarlo
                 if (tienePermisoBool !== true && permisoNativo !== 'granted') {
                     if (permisoNativo === 'denied') {
-                        console.warn('⚠️ El usuario bloqueó las notificaciones. Debe habilitarlas manualmente desde la barra de direcciones del navegador.');
+                        console.warn('⚠️ Notificaciones bloqueadas por el usuario');
                         return;
                     }
-
-                    console.log('Solicitando permiso de notificaciones...');
                     const granted = await OneSignal.Notifications.requestPermission();
-                    console.log('Permiso concedido:', granted);
-                    if (!granted) {
-                        console.warn('Usuario rechazó las notificaciones');
-                        return;
-                    }
-                } else {
-                    console.log('✅ Permiso ya concedido previamente');
+                    if (!granted) return;
                 }
 
-                // ocp Asociar dispositivo al usuario logueado (external_id)
                 try {
                     await OneSignal.login(user.id);
-                    console.log('✅ OneSignal.login() OK para', user.id);
                 } catch (e) {
-                    console.warn('OneSignal.login() falló (no crítico):', e.message);
+                    console.warn('OneSignal.login() falló:', e.message);
                 }
 
-                // ocp Esperar a que el playerId esté disponible (500ms - 3s)
                 let playerId = OneSignal.User.PushSubscription.id;
                 let intentos = 0;
                 while (!playerId && intentos < 10) {
@@ -231,25 +213,16 @@ async function configurarOneSignal(user, rol) {
                     intentos++;
                 }
 
-                if (!playerId) {
-                    console.warn('No se obtuvo playerId después de 5s');
-                    return;
-                }
+                if (!playerId) return;
 
-                console.log('✅ PlayerId:', playerId);
                 localStorage.setItem('playerId', playerId);
 
-                // ocp Guardar en Supabase
                 const { error } = await supabase.from('dispositivos').upsert(
                     { usuario_id: user.id, player_id: playerId },
                     { onConflict: 'usuario_id,player_id' }
                 );
 
-                if (error) {
-                    console.error('Error guardando dispositivo:', error.message);
-                } else {
-                    console.log('✅ Dispositivo registrado en Supabase');
-                }
+                if (!error) console.log('✅ Dispositivo registrado en Supabase');
             } catch (e) {
                 console.error('Error en OneSignal:', e);
             }
@@ -265,14 +238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const menuToggle = document.getElementById('menu-toggle');
     const footerEl = document.getElementById('sidebar-footer');
 
-    // 1. Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
         await cargarDashboardVisitante();
         return;
     }
 
-    // 2. Validar usuario
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
         await supabase.auth.signOut();
@@ -281,7 +252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 3. Obtener rol VERIFICADO desde perfiles
     const rol = await obtenerRolVerificado();
     if (!rol) {
         alert('Tu cuenta no está activa o no tiene perfil asignado. Contacta al administrador.');
@@ -293,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const perfil = await obtenerPerfilActual();
 
-    // 4. Mostrar sidebar
     if (sidebarEl) {
         sidebarEl.classList.remove('hidden');
         if (window.innerWidth < 768) {
@@ -305,7 +274,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     construirSidebar(rol);
     await mostrarInfoUsuario();
 
-    // 5. Footer del sidebar
     if (footerEl) {
         footerEl.innerHTML = '';
         const logoutBtn = document.createElement('button');
@@ -330,11 +298,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 6. Conectar botones de navegación
     const btnMap = [
         ['btn-nav-dashboard',    () => import('./modules/dashboard/index.js').then(m => m.cargarDashboard(rol))],
         ['btn-nav-biblioteca',   () => import('./modules/biblioteca/index.js').then(m => m.cargarModuloBiblioteca())],
-        ['btn-nav-mtto',         cargarModuloOrdenes],
+        ['btn-nav-ot',           cargarModuloOrdenes],
+        ['btn-nav-mtto',         () => import('./modules/mantenimiento/index.js').then(m => m.cargarMantenimiento(rol))],
         ['btn-nav-operaciones',  () => import('./modules/operaciones/index.js').then(m => m.cargarModuloOperaciones())],
         ['btn-nav-usuarios',     cargarModuloUsuarios],
         ['btn-nav-ssl',          () => import('./modules/ssl/index.js').then(m => m.cargarModuloSSL())],
@@ -355,7 +323,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('btn-cambiar-password')?.addEventListener('click', abrirCambioPassword);
 
-    // 7. Menú hamburguesa
     if (menuToggle && sidebarEl) {
         menuToggle.addEventListener('click', () => {
             sidebarEl.classList.toggle('sidebar-closed');
@@ -372,13 +339,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 8. Iniciar presencia
     await iniciarPresencia(user.id, perfil?.nombre_completo || user.email, rol, perfil?.departamento);
-
-    // 9. Configurar OneSignal CON solicitud automática de permiso
     await configurarOneSignal(user, rol);
 
-    // 10. Cargar módulo inicial
     import('./modules/dashboard/index.js')
         .then(m => m.cargarDashboard(rol))
         .catch(err => {
@@ -386,6 +349,5 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('app-content').innerHTML = `<p class="text-red-500">Error al cargar el panel.</p>`;
         });
 
-    // 11. Limpiar presencia al salir
     window.addEventListener('beforeunload', () => detenerPresencia());
 });
