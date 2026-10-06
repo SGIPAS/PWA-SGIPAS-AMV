@@ -58,29 +58,28 @@ export const ESTRATEGIAS_MANTENIMIENTO = [
     { value: 'correctivo_planificado', label: 'Correctivo planificado' }
 ];
 
-// ocp Formatear fecha a formato local
+// ocp Formatear fecha a formato local con hora
 export function formatearFecha(fecha) {
     if (!fecha) return '—';
     return new Date(fecha).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-// ocp Formatear solo fecha
+// ocp Formatear solo fecha (sin hora)
 export function formatearFechaCorta(fecha) {
     if (!fecha) return '—';
     return new Date(fecha).toLocaleDateString('es-VE');
 }
 
-// ocp Badge HTML para criticidad
+// ocp Badge HTML para clase de criticidad
 export function badgeCriticidad(clase) {
     const item = CRITICIDADES.find(c => c.value === clase) || CRITICIDADES[2];
     return `<span class="px-2 py-0.5 rounded text-xs font-semibold border ${item.color}">${escapeHtml(item.value)}</span>`;
 }
 
-// ocp Badge HTML para estado
+// ocp Badge HTML para estado del equipo
 export function badgeEstado(estado) {
-    const item = ESTADOS_EQUIPO.find(e => e.value === estado) || ESTADOS_EPUESTO[0];
-    const found = ESTADOS_EQUIPO.find(e => e.value === estado) || ESTADOS_EQUIPO[0];
-    return `<span class="px-2 py-0.5 rounded text-xs font-semibold ${found.color}">${escapeHtml(found.label)}</span>`;
+    const item = ESTADOS_EQUIPO.find(e => e.value === estado) || ESTADOS_EQUIPO[0];
+    return `<span class="px-2 py-0.5 rounded text-xs font-semibold ${item.color}">${escapeHtml(item.label)}</span>`;
 }
 
 // ocp Obtener label de área por value
