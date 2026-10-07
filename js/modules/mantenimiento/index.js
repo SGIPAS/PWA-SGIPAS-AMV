@@ -1,5 +1,7 @@
 // ocp Módulo de Mantenimiento y Activos — orquestador con sub-tabs
 import { cargarVistaEquipos } from './equipos/index.js';
+import { cargarVistaRepuestos } from './repuestos/index.js';
+import { cargarVistaMovimientosGlobal } from './movimientos/index.js';
 
 export async function cargarMantenimiento(rol) {
     const contenedor = document.getElementById('app-content');
@@ -15,7 +17,7 @@ export async function cargarMantenimiento(rol) {
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav-mtto">
                 <button data-tab="equipos" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">⚙️ Equipos</button>
                 <button data-tab="repuestos" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📦 Repuestos</button>
-                <button data-tab="kardex" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📋 Kardex</button>
+                <button data-tab="movimientos" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📋 Movimientos</button>
                 <button data-tab="predictivo" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">📊 Predictivo</button>
                 <button data-tab="rca" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🔍 Causa Raíz</button>
             </nav>
@@ -44,10 +46,10 @@ export async function cargarMantenimiento(rol) {
                     await cargarVistaEquipos(tabContent, rol);
                     break;
                 case 'repuestos':
-                    tabContent.innerHTML = '<p class="text-slate-400 italic">Módulo de repuestos — próximo a implementar.</p>';
+                    await cargarVistaRepuestos(tabContent, rol);
                     break;
-                case 'kardex':
-                    tabContent.innerHTML = '<p class="text-slate-400 italic">Kardex — próximo a implementar.</p>';
+                case 'movimientos':
+                    await cargarVistaMovimientosGlobal(tabContent, rol);
                     break;
                 case 'predictivo':
                     tabContent.innerHTML = '<p class="text-slate-400 italic">Mediciones predictivas — próximo a implementar.</p>';
