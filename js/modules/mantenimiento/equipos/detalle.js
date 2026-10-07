@@ -205,8 +205,12 @@ export async function abrirDetalleEquipo(id, rol) {
         abrirModalEditarEquipo(id, rol);
     });
 
-    document.getElementById('btn-agregar-evento')?.addEventListener('click', () => {
-        alert('Formulario de eventos — próximo a implementar.');
+    document.getElementById('btn-agregar-evento')?.addEventListener('click', async () => {
+        const { abrirFormularioEvento } = await import('./evento-form.js');
+        abrirFormularioEvento(equipo, rol, async () => {
+            // Recargar el detalle para mostrar el nuevo evento
+            await abrirDetalleEquipo(id, rol);
+        });
     });
 }
 
