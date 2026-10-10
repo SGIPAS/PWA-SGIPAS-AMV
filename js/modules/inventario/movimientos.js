@@ -66,7 +66,7 @@ export async function renderizarMovimientos(contenedor) {
             html += `
             <div>
                 <label class="block text-slate-400 text-sm">Toneladas Despachadas</label>
-                <input type="number" step="0.01" id="toneladas" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                <input type="number" step="0.001" id="toneladas" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
             </div>
             <div>
                 <label class="block text-slate-400 text-sm">Tanque de Origen</label>
