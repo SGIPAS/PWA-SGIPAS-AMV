@@ -2,9 +2,9 @@
 export const personalPorRol = {
     'Supervisor':   ['Wladimir J. Pino (A)', 'Angel Barrueta (B)', 'Eduardo Arias (C)', 'Heiver J. Ramirez (D)'],
     'Panelista':    ['Angel S. Solorzano', 'Noelvis dj Camacho T.', 'Hilnelio J. García Q.', 'Jesus E. Trias V.'],
-    'Operador 1':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
-    'Operador 2':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
-    'Operador 3':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilart L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+    'Operador 1':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilarte L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+    'Operador 2':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilarte L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
+    'Operador 3':   ['Carlos Rivero G.', 'Jose Rondón', 'Jose R. Guilarte L.', 'Christian Acosta OCP', 'Reymond Garcia C.', 'Julio C. Mercado', 'Digrian D. Romero R.', 'Octavio A. Rodríguez C.', 'Kelvis Samuray', 'Fernando Gruber'],
     'Paramedico':   ['Arturo Tenia', 'Joseanny C. González', 'Lisangel L. Guevara', 'Lisbeth González', 'Lilibeth'],
     'Inspector SSL':['Inspector']
 };
