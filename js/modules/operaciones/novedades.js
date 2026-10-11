@@ -105,7 +105,7 @@ export async function renderizarNovedades(contenedor, rol) {
                 titulo: `Novedad: ${tag}`,
                 descripcion: desc,
                 tipo: 'correctiva',
-                prioridad: 'media',
+                prioridad: 'programado',
                 estado: 'pendiente',
                 solicitante_id: user.id,
                 creado_por: user.id,
