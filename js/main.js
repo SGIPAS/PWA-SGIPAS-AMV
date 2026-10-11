@@ -4,6 +4,7 @@ import { cargarModuloOrdenes } from './modules/ordenes/index.js';
 import { cargarModuloUsuarios } from './modules/usuarios/index.js';
 import { mostrarLogin, cerrarSesion } from './auth.js';
 import { iniciarPresencia, detenerPresencia } from './modules/presencia.js';
+import { cancelarTodasLasSuscripciones } from './realtime.js';
 
 // ocp Construir sidebar según rol verificado
 function construirSidebar(rol) {
