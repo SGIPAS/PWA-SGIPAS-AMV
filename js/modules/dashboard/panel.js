@@ -114,7 +114,7 @@ export async function renderizarPanel(contenedor, rol) {
                 </table>
             </div>
             <div class="mt-2 pt-2 border-t border-slate-700">
-                <h4 class="text-[20px] font-semibold text-slate-400 mb-1">Acidez de Azufre</h4>
+                <h4 class="text-[10px] font-semibold text-slate-800 mb-1">Acidez de Azufre</h4>
                 <div class="grid grid-cols-2 gap-x-2 text-[10px] text-slate-300">
                     <div>TQ-A: <span class="font-bold">${acidezPorTanque['TQ-4302A']?.toFixed(4) ?? '--'}%</span></div>
                     <div>TQ-B: <span class="font-bold">${acidezPorTanque['TQ-4302B']?.toFixed(4) ?? '--'}%</span></div>
