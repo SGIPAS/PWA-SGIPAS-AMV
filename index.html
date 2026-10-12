@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
-    <!-- ocp OneSignal Web Push SDK v16 -->
+    <!-- ocp OneSignal Web Push SDK v16 — integrado con Service Worker propio -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -21,7 +21,10 @@
                 await OneSignal.init({
                     appId: "b624c272-9ab6-44fe-af9d-1e5ff7128fca",
                     notifyButton: { enable: false },
-                    allowLocalhostAsSecureOrigin: false
+                    allowLocalhostAsSecureOrigin: false,
+                    // ocp Usar nuestro sw.js en lugar del SW por defecto de OneSignal
+                    serviceWorkerParam: { scope: "/" },
+                    serviceWorkerPath: "/sw.js"
                 });
                 console.log('✅ OneSignal inicializado correctamente');
             } catch (e) {
@@ -42,6 +45,28 @@
             min-width: 0 !important;
             overflow: hidden !important;
             border-right-width: 0 !important;
+        }
+
+        /* ocp Indicador de offline */
+        #indicador-offline {
+            display: none;
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: #92400e;
+            color: #fef3c7;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid #b45309;
+        }
+        body.offline #indicador-offline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         @media print {
@@ -104,6 +129,34 @@
         <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8"></div>
     </main>
 
+    <!-- ocp Indicador visual de modo offline -->
+    <div id="indicador-offline">
+        <span>⚡</span>
+        <span>Modo sin conexión — trabajando desde caché</span>
+    </div>
+
     <script type="module" src="js/main.js"></script>
+
+    <!-- ocp Registro del Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('✅ SW registrado:', reg.scope);
+                        // Verificar actualizaciones cada 5 min
+                        setInterval(() => reg.update(), 5 * 60 * 1000);
+                    })
+                    .catch(err => console.error('❌ SW falló:', err));
+            });
+
+            // Detectar online/offline
+            window.addEventListener('online', () => document.body.classList.remove('offline'));
+            window.addEventListener('offline', () => document.body.classList.add('offline'));
+
+            // Estado inicial
+            if (!navigator.onLine) document.body.classList.add('offline');
+        }
+    </script>
 </body>
 </html>
