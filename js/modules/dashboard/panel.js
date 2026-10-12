@@ -164,7 +164,7 @@ export async function renderizarPanel(contenedor, rol) {
                     const umbral = UMBRALES[p.key] || null;
                     const semaforo = colorSemaforo(valor, umbral);
                     return `
-                    <div class="flex items-center justify-between text-[20px]">
+                    <div class="flex items-center justify-between text-[15px]">
                         <span class="text-slate-300">${p.nombre}</span>
                         <span class="font-bold text-white">${valor?.toFixed(2) ?? '--'}</span>
                         <span class="inline-block w-2 h-2 rounded-full ${colorClase(semaforo)}" title="${semaforo}"></span>
