@@ -20,7 +20,7 @@ export async function cargarModuloOperaciones() {
     contenedor.innerHTML = `
         <div class="mb-6">
             <h1 class="text-3xl font-bold text-slate-100">Control Operacional</h1>
-            <p class="text-slate-400 mt-1">Monitoreo de parámetros críticos, reportes y novedades.</p>
+            <p class="text-slate-400 mt-1">Reportes, Monitoreo de parámetros críticos y novedades.</p>
         </div>
 
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
