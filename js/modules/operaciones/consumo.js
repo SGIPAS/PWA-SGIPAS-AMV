@@ -14,7 +14,7 @@ export async function renderizarConsumo(contenedor, rol) {
                         <select id="consumo-tipo" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                             <option value="general">General</option>
                             <option value="planta acido">Planta de Ácido</option>
-                            <option value="caldera acido">Caldera de Ácido</option>
+                            <option value="caldera acido">Caldera de Ácido (TQ-1205)</option>
                             <option value="caldera de sulfato">Caldera de Sulfato</option>
                             <option value="planta sulfato">Planta de Sulfato</option>
                         </select>
