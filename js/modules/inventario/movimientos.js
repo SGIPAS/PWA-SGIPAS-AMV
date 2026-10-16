@@ -1,8 +1,9 @@
-// ocp Submódulo de Movimientos – recepción de azufre y despacho de ácido
+// ocp Submódulo de Movimientos con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from '../operaciones/utils.js';
 
-export async function renderizarMovimientos(contenedor) {
+export async function renderizarMovimientos(contenedor, rol) {
     contenedor.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -66,7 +67,7 @@ export async function renderizarMovimientos(contenedor) {
             html += `
             <div>
                 <label class="block text-slate-400 text-sm">Toneladas Despachadas</label>
-                <input type="number" step="0.001" id="toneladas" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
+                <input type="number" step="0.01" id="toneladas" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white" required>
             </div>
             <div>
                 <label class="block text-slate-400 text-sm">Tanque de Origen</label>
@@ -107,10 +108,7 @@ export async function renderizarMovimientos(contenedor) {
         if (tanqueSelect) {
             tanqueSelect.addEventListener('change', async () => {
                 const tanque = tanqueSelect.value;
-                if (!tanque) {
-                    certDiv.classList.add('hidden');
-                    return;
-                }
+                if (!tanque) { certDiv.classList.add('hidden'); return; }
 
                 const { data: certs } = await supabase
                     .from('certificaciones_acido')
@@ -198,34 +196,54 @@ export async function renderizarMovimientos(contenedor) {
         document.getElementById('form-inventario').reset();
         actualizarCampos();
         preview.classList.add('hidden');
-        cargarListaMovimientos();
+        cargarListaMovimientos(rol);
     });
 
-    async function cargarListaMovimientos() {
-        const container = document.getElementById('lista-movimientos');
-        const { data, error } = await supabase.from('inventario_movimientos').select('*').order('fecha_movimiento', { ascending: false }).limit(10);
-        if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
-        if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin movimientos.</p>'; return; }
+    await cargarListaMovimientos(rol);
+}
 
-        // ocp URLs firmadas en paralelo
-        const urlsMap = {};
-        await Promise.all(data.map(async (m) => {
-            if (m.foto_url) urlsMap[m.id] = await getSignedUrl(m.foto_url);
-        }));
+async function cargarListaMovimientos(rol) {
+    const container = document.getElementById('lista-movimientos');
+    const { data, error } = await supabase
+        .from('inventario_movimientos')
+        .select('*')
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-        container.innerHTML = data.map(m => `
-            <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
-                <div class="flex justify-between text-xs text-slate-400 mb-1">
-                    <span class="font-semibold text-white">${escapeHtml(m.tipo_movimiento.replace(/_/g, ' '))}</span>
-                    <span>${new Date(m.fecha_movimiento).toLocaleString()}</span>
-                </div>
-                <p class="text-sm text-slate-300">Peso: ${m.peso_neto ?? m.toneladas_despachadas ?? '-'} ton | Acidez: ${m.acidez ?? '-'}%</p>
-                ${m.tanque_origen ? `<p class="text-xs text-slate-400">Tanque origen: ${escapeHtml(m.tanque_origen)}</p>` : ''}
-                ${m.observaciones ? `<p class="text-xs text-slate-400">${escapeHtml(m.observaciones)}</p>` : ''}
-                ${m.foto_url && urlsMap[m.id] ? `<img src="${urlsMap[m.id]}" class="mt-2 max-h-24 rounded">` : ''}
+    if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
+    if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin movimientos.</p>'; return; }
+
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
+    const urlsMap = {};
+    await Promise.all(data.map(async (m) => {
+        if (m.foto_url) urlsMap[m.id] = await getSignedUrl(m.foto_url);
+    }));
+
+    container.innerHTML = data.map(m => `
+        <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
+            <div class="flex justify-between items-start text-xs mb-1">
+                <span class="font-semibold text-white">${escapeHtml(m.tipo_movimiento.replace(/_/g, ' '))}</span>
+                <span class="text-slate-300">👤 ${escapeHtml(nombres[m.registrado_por] || 'N/A')}</span>
             </div>
-        `).join('');
-    }
+            <div class="text-xs text-slate-400 mb-1">${escapeHtml(formatearFechaHora(m.created_at))}</div>
+            <div class="flex justify-between items-center">
+                <p class="text-sm text-slate-300">Peso: ${m.peso_neto ?? m.toneladas_despachadas ?? '-'} ton | Acidez: ${m.acidez ?? '-'}%</p>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${m.id}">🗑️ Anular</button>` : ''}
+            </div>
+            ${m.tanque_origen ? `<p class="text-xs text-slate-400">Tanque origen: ${escapeHtml(m.tanque_origen)}</p>` : ''}
+            ${m.observaciones ? `<p class="text-xs text-slate-400">${escapeHtml(m.observaciones)}</p>` : ''}
+            ${m.foto_url && urlsMap[m.id] ? `<img src="${urlsMap[m.id]}" class="mt-2 max-h-24 rounded cursor-pointer" onclick="window.open('${urlsMap[m.id]}','_blank')">` : ''}
+        </div>
+    `).join('');
 
-    await cargarListaMovimientos();
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('inventario_movimientos', btn.dataset.id, () => cargarListaMovimientos(rol));
+            });
+        });
+    }
 }
