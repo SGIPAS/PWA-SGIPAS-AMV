@@ -5,6 +5,7 @@ import { cargarModuloUsuarios } from './modules/usuarios/index.js';
 import { mostrarLogin, cerrarSesion } from './auth.js';
 import { iniciarPresencia, detenerPresencia } from './modules/presencia.js';
 import { cancelarTodasLasSuscripciones } from './realtime.js';
+import { inicializarBanner, detenerBanner } from './modules/turnos/banner.js';
 
 // ocp Construir sidebar según rol verificado
 function construirSidebar(rol) {
