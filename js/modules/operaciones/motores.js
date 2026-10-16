@@ -1,9 +1,9 @@
-// ocp Módulo de Motores – registro simplificado con múltiples puntos por equipo
+// ocp Módulo de Motores – trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
 
 export async function renderizarMotores(contenedor, rol) {
-    // Obtener lista de equipos únicos desde puntos_medicion_motores
     const { data: equipos } = await supabase
         .from('puntos_medicion_motores')
         .select('tag_equipo')
@@ -23,7 +23,6 @@ export async function renderizarMotores(contenedor, rol) {
                             ${tagsUnicos.map(tag => `<option value="${tag}">${tag}</option>`).join('')}
                         </select>
                     </div>
-                    <!-- Contenedor donde aparecerán los puntos de medición dinámicamente -->
                     <div id="puntos-medicion" class="space-y-3">
                         <p class="text-slate-500 text-sm">Seleccione un equipo para ver sus puntos de medición.</p>
                     </div>
@@ -43,7 +42,6 @@ export async function renderizarMotores(contenedor, rol) {
     const puntosContainer = document.getElementById('puntos-medicion');
     const btnGuardar = document.getElementById('btn-guardar-motor');
 
-    // Al cambiar el equipo, cargar sus puntos de medición
     tagSelect.addEventListener('change', async () => {
         const tag = tagSelect.value;
         if (!tag) {
@@ -52,7 +50,6 @@ export async function renderizarMotores(contenedor, rol) {
             return;
         }
 
-        // Obtener puntos de medición para este equipo
         const { data: puntos } = await supabase
             .from('puntos_medicion_motores')
             .select('id, descripcion, tipo_medicion')
@@ -65,10 +62,9 @@ export async function renderizarMotores(contenedor, rol) {
             return;
         }
 
-        // Generar campos para cada punto
         puntosContainer.innerHTML = puntos.map(p => `
             <div class="bg-slate-800 p-3 rounded border border-slate-700">
-                <label class="block text-slate-400 text-sm mb-1">${p.descripcion} (${p.tipo_medicion})</label>
+                <label class="block text-slate-400 text-sm mb-1">${escapeHtml(p.descripcion)} (${escapeHtml(p.tipo_medicion)})</label>
                 <input type="number" step="0.1" class="temp-input w-full bg-slate-700 border border-slate-600 rounded p-2 text-white" data-punto-id="${p.id}" placeholder="Temperatura (°C)">
             </div>
         `).join('');
@@ -76,7 +72,6 @@ export async function renderizarMotores(contenedor, rol) {
         btnGuardar.classList.remove('hidden');
     });
 
-    // Guardar todas las temperaturas a la vez
     document.getElementById('form-motor').addEventListener('submit', async (e) => {
         e.preventDefault();
         const tag = tagSelect.value;
@@ -110,28 +105,48 @@ export async function renderizarMotores(contenedor, rol) {
         document.getElementById('form-motor').reset();
         puntosContainer.innerHTML = '<p class="text-slate-500 text-sm">Seleccione un equipo para ver sus puntos de medición.</p>';
         btnGuardar.classList.add('hidden');
-        cargarListaMotores();
+        cargarListaMotores(rol);
     });
 
-    await cargarListaMotores();
+    await cargarListaMotores(rol);
 }
 
-async function cargarListaMotores() {
+async function cargarListaMotores(rol) {
     const container = document.getElementById('lista-motores');
     const { data, error } = await supabase
         .from('mediciones_motores')
         .select('*, punto_medicion:puntos_medicion_motores(tag_equipo, descripcion, tipo_medicion)')
-        .order('fecha_registro', { ascending: false })
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
         .limit(20);
 
     if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin mediciones.</p>'; return; }
 
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
     container.innerHTML = data.map(m => `
         <div class="bg-slate-800 p-2 rounded text-sm">
-            <span class="text-slate-400">${m.fecha_registro}</span>
-            <span class="ml-2 font-bold text-white">${m.punto_medicion?.tag_equipo}</span>
-            <span class="ml-2 text-blue-400">${m.punto_medicion?.descripcion}: ${m.temperatura}°C</span>
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(m.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[m.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-white">${escapeHtml(m.punto_medicion?.tag_equipo || '')}</span>
+                    <span class="ml-2 text-blue-400">${escapeHtml(m.punto_medicion?.descripcion || '')}: ${m.temperatura}°C</span>
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${m.id}">🗑️ Anular</button>` : ''}
+            </div>
         </div>
     `).join('');
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('mediciones_motores', btn.dataset.id, () => cargarListaMotores(rol));
+            });
+        });
+    }
 }
