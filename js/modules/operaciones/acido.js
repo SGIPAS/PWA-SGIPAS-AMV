@@ -1,6 +1,7 @@
 // ocp Registro de análisis de ácido (% conc., NTU, densidad, temp)
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora } from './utils.js';
 
 export async function renderizarAcido(contenedor, rol) {
     contenedor.innerHTML = `
@@ -50,7 +51,7 @@ export async function renderizarAcido(contenedor, rol) {
             densidad,
             temperatura: temp,
             registrado_por: user.id,
-            fecha_registro: new Date().toISOString().split('T')[0] // solo fecha
+            fecha_registro: new Date().toISOString().split('T')[0]
         }]);
 
         if (error) return alert('Error: ' + error.message);
@@ -64,7 +65,12 @@ export async function renderizarAcido(contenedor, rol) {
 
 async function cargarListaAcido() {
     const container = document.getElementById('lista-acido');
-    const { data, error } = await supabase.from('analisis_acido').select('*').order('fecha_registro', { ascending: false }).limit(10);
+    const { data, error } = await supabase
+        .from('analisis_acido')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
     if (error) {
         container.innerHTML = '<p class="text-red-500">Error.</p>';
         return;
@@ -73,12 +79,21 @@ async function cargarListaAcido() {
         container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
         return;
     }
+
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
-            <span class="text-slate-400">${r.fecha_registro}</span>
-            <span class="ml-2 text-green-400">${r.concentracion}%</span>
-            <span class="ml-2 text-slate-300">NTU: ${r.turbidez_ntu ?? '-'}</span>
-            <span class="ml-2">D:${r.densidad ?? '-'} T:${r.temperatura ?? '-'}°C</span>
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(r.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1">
+                <span class="text-green-400 font-bold">${r.concentracion}%</span>
+                <span class="ml-2 text-slate-300">NTU: ${r.turbidez_ntu ?? '-'}</span>
+                <span class="ml-2 text-slate-300">D:${r.densidad ?? '-'}</span>
+                <span class="ml-2 text-slate-300">T:${r.temperatura ?? '-'}°C</span>
+            </div>
         </div>
     `).join('');
 }
