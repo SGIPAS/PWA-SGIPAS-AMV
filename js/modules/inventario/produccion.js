@@ -1,7 +1,9 @@
-// ocp Submódulo de Producción Diaria y Stock Actual (con desglose por tanque TQ-3101..4 y certificaciones)
+// ocp Submódulo de Producción Diaria con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
+import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from '../operaciones/utils.js';
 
-export async function renderizarProduccion(contenedor) {
+export async function renderizarProduccion(contenedor, rol) {
     contenedor.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
@@ -53,9 +55,7 @@ export async function renderizarProduccion(contenedor) {
         if (!tanque) return alert('Seleccione un tanque.');
 
         const { error } = await supabase.from('produccion_diaria').insert({
-            fecha,
-            tanque,
-            toneladas,
+            fecha, tanque, toneladas,
             registrado_por: user.id
         });
 
@@ -63,33 +63,61 @@ export async function renderizarProduccion(contenedor) {
         alert('Producción registrada.');
         document.getElementById('form-produccion').reset();
         document.getElementById('prod-fecha').value = new Date().toISOString().split('T')[0];
-        cargarListaProduccion();
+        cargarListaProduccion(rol);
         actualizarResumenStock();
     });
 
-    await cargarListaProduccion();
+    await cargarListaProduccion(rol);
     await actualizarResumenStock();
 }
 
-// ocp Carga la lista de últimas producciones registradas
-async function cargarListaProduccion() {
+async function cargarListaProduccion(rol) {
     const container = document.getElementById('lista-produccion');
-    const { data, error } = await supabase.from('produccion_diaria').select('*').order('fecha', { ascending: false }).limit(10);
+    const { data, error } = await supabase
+        .from('produccion_diaria')
+        .select('*')
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
     if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
+
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
     container.innerHTML = data.map(p => `
-        <div class="bg-slate-800 p-2 rounded text-sm flex justify-between">
-            <span>${p.fecha} (${p.tanque || '?'})</span>
-            <span class="font-bold text-green-400">${p.toneladas.toFixed(3)} ton</span>
+        <div class="bg-slate-800 p-2 rounded text-sm">
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(p.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[p.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-white">${escapeHtml(p.fecha)} (${escapeHtml(p.tanque || '?')})</span>
+                    <span class="ml-2 text-green-400">${p.toneladas.toFixed(3)} ton</span>
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${p.id}">🗑️ Anular</button>` : ''}
+            </div>
         </div>
     `).join('');
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('produccion_diaria', btn.dataset.id, () => {
+                    cargarListaProduccion(rol);
+                    actualizarResumenStock();
+                });
+            });
+        });
+    }
 }
 
-// ocp Calcula y muestra el stock por tanque TQ-3101..4, incluyendo certificaciones
 async function actualizarResumenStock() {
     const container = document.getElementById('resumen-stock');
 
-    const { data: produccion } = await supabase.from('produccion_diaria').select('tanque, toneladas');
+    const { data: produccion } = await supabase.from('produccion_diaria').select('tanque, toneladas').eq('anulado', false);
     const prodPorTanque = { 'TQ-3101': 0, 'TQ-3102': 0, 'TQ-3103': 0, 'TQ-3104': 0 };
     produccion?.forEach(p => {
         if (p.tanque && prodPorTanque.hasOwnProperty(p.tanque)) {
@@ -100,6 +128,7 @@ async function actualizarResumenStock() {
     const { data: despachos } = await supabase
         .from('inventario_movimientos')
         .select('tanque_origen, toneladas_despachadas')
+        .eq('anulado', false)
         .in('tipo_movimiento', ['despacho_sulfato', 'despacho_cisterna'])
         .not('tanque_origen', 'is', null);
 
@@ -117,9 +146,7 @@ async function actualizarResumenStock() {
 
     const certPorTanque = {};
     certificaciones?.forEach(c => {
-        if (!certPorTanque[c.tanque]) {
-            certPorTanque[c.tanque] = c;
-        }
+        if (!certPorTanque[c.tanque]) certPorTanque[c.tanque] = c;
     });
 
     let html = '';
@@ -136,7 +163,7 @@ async function actualizarResumenStock() {
                 <p class="font-bold text-white">${tq}: ${stock.toFixed(3)} ton</p>
                 ${cert ? `
                     <p class="text-xs text-slate-400">
-                        Cert: ${cert.concentracion}% | Fe: ${cert.ppm_fe ?? '--'} ppm | NTU: ${cert.ntu ?? '--'} 
+                        Cert: ${cert.concentracion}% | Fe: ${cert.ppm_fe ?? '--'} ppm | NTU: ${cert.ntu ?? '--'}
                         <br>Vence: ${new Date(cert.fecha_vigencia).toLocaleDateString('es-VE')}
                         ${!vigente ? '<span class="text-red-500 ml-1">(Vencida)</span>' : ''}
                     </p>
