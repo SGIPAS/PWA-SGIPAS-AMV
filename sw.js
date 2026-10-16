@@ -1,11 +1,11 @@
-// ocp Service Worker SGIPAS — network-first para código propio, cache-first para assets
+// ocp Service Worker SGIPAS — network-first con bypass de caché HTTP
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_VERSION = 'sgipas-v3';
+const CACHE_VERSION = 'sgipas-v4';
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_CDN = `${CACHE_VERSION}-cdn`;
 
-// ocp Solo archivos que no cambian (íconos, logos)
+// Assets que no cambian (cache-first)
 const ASSETS_INMUTABLES = [
     '/manifest.json',
     '/logo.png',
@@ -14,7 +14,6 @@ const ASSETS_INMUTABLES = [
     '/assets/icons/icon-512x512.png'
 ];
 
-// ocp CDN externos (casi nunca cambian)
 const ARCHIVOS_CDN = [
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -24,21 +23,18 @@ const ARCHIVOS_CDN = [
     'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
 ];
 
-// ocp Instalar: cachear solo lo mínimo (assets + CDN)
 self.addEventListener('install', (event) => {
     console.log('[sw] Instalando versión', CACHE_VERSION);
     event.waitUntil((async () => {
         const cacheStatic = await caches.open(CACHE_STATIC);
         const cacheCdn = await caches.open(CACHE_CDN);
 
-        // Assets inmutables
         await Promise.allSettled(
             ASSETS_INMUTABLES.map(url =>
                 cacheStatic.add(url).catch(err => console.warn('[sw] No cacheado:', url, err.message))
             )
         );
 
-        // CDNs con fallback no-cors
         await Promise.allSettled(
             ARCHIVOS_CDN.map(async (url) => {
                 try {
@@ -59,7 +55,6 @@ self.addEventListener('install', (event) => {
     })());
 });
 
-// ocp Activar: limpiar TODAS las cachés viejas (v1, v2)
 self.addEventListener('activate', (event) => {
     console.log('[sw] Activando, limpiando cachés viejas');
     event.waitUntil((async () => {
@@ -76,14 +71,12 @@ self.addEventListener('activate', (event) => {
     })());
 });
 
-// ocp Fetch: estrategia diferenciada
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
     if (request.method !== 'GET') return;
 
-    // Ignorar llamadas a Supabase (API, auth, storage, realtime)
     if (url.hostname.includes('supabase.co') ||
         url.pathname.startsWith('/rest/') ||
         url.pathname.startsWith('/auth/') ||
@@ -94,33 +87,29 @@ self.addEventListener('fetch', (event) => {
 
     if (request.headers.get('Upgrade') === 'websocket') return;
 
-    // Archivos propios (HTML, JS, CSS)
     if (url.origin === self.location.origin) {
-        // Assets inmutables → cache-first
         if (ASSETS_INMUTABLES.includes(url.pathname)) {
             event.respondWith(cacheFirst(request, CACHE_STATIC));
             return;
         }
-        // Todo lo demás (HTML, JS) → network-first
-        event.respondWith(networkFirst(request, CACHE_STATIC));
+        // JS, HTML, CSS: network-first con BYPASS de caché HTTP
+        event.respondWith(networkFirstForzado(request, CACHE_STATIC));
         return;
     }
 
-    // CDN → cache-first
     if (ARCHIVOS_CDN.some(cdn => request.url.startsWith(cdn))) {
         event.respondWith(cacheFirst(request, CACHE_CDN));
         return;
     }
 
-    // Otros externos → network con fallback a caché
-    event.respondWith(networkFirst(request, CACHE_CDN));
+    event.respondWith(networkFirstForzado(request, CACHE_CDN));
 });
 
-// ocp Network-first: intenta red, si falla usa caché
-async function networkFirst(request, cacheName) {
+// ocp Network-first con bypass de caché HTTP (cache: 'no-cache' fuerza revalidación)
+async function networkFirstForzado(request, cacheName) {
     const cache = await caches.open(cacheName);
     try {
-        const response = await fetch(request);
+        const response = await fetch(request, { cache: 'no-cache' });
         if (response && response.status === 200) {
             cache.put(request, response.clone());
         }
@@ -129,7 +118,6 @@ async function networkFirst(request, cacheName) {
         const cached = await cache.match(request);
         if (cached) return cached;
 
-        // Si es HTML, devolver el index cacheado
         if (request.headers.get('accept')?.includes('text/html')) {
             const offline = await caches.match('/index.html');
             if (offline) return offline;
@@ -142,7 +130,6 @@ async function networkFirst(request, cacheName) {
     }
 }
 
-// ocp Cache-first: usa caché, si no hay va a red
 async function cacheFirst(request, cacheName) {
     const cache = await caches.open(cacheName);
     const cached = await cache.match(request);
