@@ -1,6 +1,7 @@
-// ocp Registro de diferenciales de presión con selectores de equipo y punto
+// ocp Registro de diferenciales de presión – trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
 
 export async function renderizarDiferenciales(contenedor, rol) {
     contenedor.innerHTML = `
@@ -68,8 +69,8 @@ export async function renderizarDiferenciales(contenedor, rol) {
         const { error } = await supabase.from('diferenciales_presion').insert([{
             tag_equipo: equipo,
             punto_medicion: punto,
-            valor: valor,
-            unidad: unidad,
+            valor,
+            unidad,
             registrado_por: user.id,
             fecha_registro: new Date().toISOString().split('T')[0]
         }]);
@@ -77,23 +78,48 @@ export async function renderizarDiferenciales(contenedor, rol) {
         if (error) return alert('Error: ' + error.message);
         alert('Registro guardado.');
         document.getElementById('form-dp').reset();
-        cargarListaDP();
+        cargarListaDP(rol);
     });
 
-    await cargarListaDP();
+    await cargarListaDP(rol);
 }
 
-async function cargarListaDP() {
+async function cargarListaDP(rol) {
     const container = document.getElementById('lista-dp');
-    const { data, error } = await supabase.from('diferenciales_presion').select('*').order('fecha_registro', { ascending: false }).limit(10);
+    const { data, error } = await supabase
+        .from('diferenciales_presion')
+        .select('*')
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
     if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
 
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
-            <span class="text-slate-400">${r.fecha_registro}</span>
-            <span class="ml-2 font-bold text-white">${r.tag_equipo} - ${r.punto_medicion}</span>
-            <span class="ml-2 text-blue-400">${r.valor} ${r.unidad}</span>
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(r.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-white">${escapeHtml(r.tag_equipo)} - ${escapeHtml(r.punto_medicion)}</span>
+                    <span class="ml-2 text-blue-400">${r.valor} ${escapeHtml(r.unidad)}</span>
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${r.id}">🗑️ Anular</button>` : ''}
+            </div>
         </div>
     `).join('');
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('diferenciales_presion', btn.dataset.id, () => cargarListaDP(rol));
+            });
+        });
+    }
 }
