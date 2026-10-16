@@ -1,6 +1,7 @@
 // ocp Registro de pH de aguas con soda cáustica
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora } from './utils.js';
 
 export async function renderizarPH(contenedor, rol) {
     contenedor.innerHTML = `
@@ -64,7 +65,12 @@ export async function renderizarPH(contenedor, rol) {
 
 async function cargarListaPH() {
     const container = document.getElementById('lista-ph');
-    const { data, error } = await supabase.from('ph_aguas').select('*').order('fecha_registro', { ascending: false }).limit(10);
+    const { data, error } = await supabase
+        .from('ph_aguas')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
     if (error) {
         container.innerHTML = '<p class="text-red-500">Error.</p>';
         return;
@@ -73,12 +79,20 @@ async function cargarListaPH() {
         container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
         return;
     }
+
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
-            <span class="text-slate-400">${r.fecha_registro}</span>
-            <span class="ml-2 font-bold text-white">${r.punto_muestreo}</span>
-            <span class="ml-2 text-blue-400">pH ${r.valor_ph}</span>
-            ${r.soda_ml ? `<span class="ml-2 text-yellow-400">Soda: ${r.soda_ml} ml</span>` : ''}
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(r.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1">
+                <span class="font-bold text-white">${escapeHtml(r.punto_muestreo)}</span>
+                <span class="ml-2 text-blue-400">pH ${r.valor_ph}</span>
+                ${r.soda_ml ? `<span class="ml-2 text-yellow-400">Soda: ${r.soda_ml} ml</span>` : ''}
+            </div>
         </div>
     `).join('');
 }
