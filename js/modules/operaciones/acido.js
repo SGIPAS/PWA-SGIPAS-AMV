@@ -1,7 +1,7 @@
-// ocp Registro de análisis de ácido (% conc., NTU, densidad, temp)
+// ocp Registro de análisis de ácido con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
-import { mapearNombresUsuarios, formatearFechaHora } from './utils.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
 
 export async function renderizarAcido(contenedor, rol) {
     contenedor.innerHTML = `
@@ -57,30 +57,26 @@ export async function renderizarAcido(contenedor, rol) {
         if (error) return alert('Error: ' + error.message);
         alert('Análisis registrado.');
         document.getElementById('form-acido').reset();
-        cargarListaAcido();
+        cargarListaAcido(rol);
     });
 
-    await cargarListaAcido();
+    await cargarListaAcido(rol);
 }
 
-async function cargarListaAcido() {
+async function cargarListaAcido(rol) {
     const container = document.getElementById('lista-acido');
     const { data, error } = await supabase
         .from('analisis_acido')
         .select('*')
+        .eq('anulado', false)
         .order('created_at', { ascending: false })
         .limit(10);
 
-    if (error) {
-        container.innerHTML = '<p class="text-red-500">Error.</p>';
-        return;
-    }
-    if (!data.length) {
-        container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
-        return;
-    }
+    if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
+    if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
 
     const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
 
     container.innerHTML = data.map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
@@ -88,12 +84,23 @@ async function cargarListaAcido() {
                 <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(r.created_at))}</span>
                 <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
             </div>
-            <div class="mt-1">
-                <span class="text-green-400 font-bold">${r.concentracion}%</span>
-                <span class="ml-2 text-slate-300">NTU: ${r.turbidez_ntu ?? '-'}</span>
-                <span class="ml-2 text-slate-300">D:${r.densidad ?? '-'}</span>
-                <span class="ml-2 text-slate-300">T:${r.temperatura ?? '-'}°C</span>
+            <div class="mt-1 flex justify-between items-center">
+                <div>
+                    <span class="text-green-400 font-bold">${r.concentracion}%</span>
+                    <span class="ml-2 text-slate-300">NTU: ${r.turbidez_ntu ?? '-'}</span>
+                    <span class="ml-2 text-slate-300">D:${r.densidad ?? '-'}</span>
+                    <span class="ml-2 text-slate-300">T:${r.temperatura ?? '-'}°C</span>
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${r.id}">🗑️ Anular</button>` : ''}
             </div>
         </div>
     `).join('');
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('analisis_acido', btn.dataset.id, () => cargarListaAcido(rol));
+            });
+        });
+    }
 }
