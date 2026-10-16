@@ -1,6 +1,7 @@
-// ocp Registro de emisiones SO₂ con foto (URLs firmadas)
+// ocp Registro de emisiones SO₂ con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
 
 export async function renderizarEmisiones(contenedor, rol) {
     contenedor.innerHTML = `
@@ -88,39 +89,53 @@ export async function renderizarEmisiones(contenedor, rol) {
         alert('Registro guardado.');
         document.getElementById('form-emisiones').reset();
         preview.classList.add('hidden');
-        cargarListaEmisiones();
+        cargarListaEmisiones(rol);
     });
 
-    await cargarListaEmisiones();
+    await cargarListaEmisiones(rol);
 }
 
-async function cargarListaEmisiones() {
+async function cargarListaEmisiones(rol) {
     const container = document.getElementById('lista-emisiones');
-    const { data, error } = await supabase.from('emisiones_so2').select('*').order('fecha_registro', { ascending: false }).limit(10);
-    if (error) {
-        container.innerHTML = '<p class="text-red-500">Error.</p>';
-        return;
-    }
-    if (!data.length) {
-        container.innerHTML = '<p class="text-slate-400">Sin registros.</p>';
-        return;
-    }
+    const { data, error } = await supabase
+        .from('emisiones_so2')
+        .select('*')
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-    // ocp Generar URLs firmadas en paralelo
+    if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
+    if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
+
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
     const urlsMap = {};
     await Promise.all(data.map(async (r) => {
-        if (r.foto_url) {
-            urlsMap[r.id] = await getSignedUrl(r.foto_url);
-        }
+        if (r.foto_url) urlsMap[r.id] = await getSignedUrl(r.foto_url);
     }));
 
     container.innerHTML = data.map(r => `
         <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
-            <div class="flex justify-between text-xs text-slate-400 mb-1">
-                <span class="font-semibold text-white">${escapeHtml(r.fecha_registro)}</span>
-                <span>T:${r.temperatura}°C, O₂:${r.porcentaje_o2}%, SO₂:${r.ppm_so2}ppm</span>
+            <div class="flex justify-between items-start text-xs">
+                <span class="text-slate-400">${escapeHtml(formatearFechaHora(r.created_at))}</span>
+                <span class="text-slate-300">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
             </div>
-            ${r.foto_url && urlsMap[r.id] ? `<img src="${urlsMap[r.id]}" class="mt-2 max-h-24 rounded">` : ''}
+            <div class="mt-1 flex justify-between items-center">
+                <div class="text-sm text-slate-300">
+                    T:${r.temperatura}°C · O₂:${r.porcentaje_o2}% · SO₂:${r.ppm_so2}ppm
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${r.id}">🗑️ Anular</button>` : ''}
+            </div>
+            ${r.foto_url && urlsMap[r.id] ? `<img src="${urlsMap[r.id]}" class="mt-2 max-h-24 rounded cursor-pointer" onclick="window.open('${urlsMap[r.id]}','_blank')">` : ''}
         </div>
     `).join('');
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('emisiones_so2', btn.dataset.id, () => cargarListaEmisiones(rol));
+            });
+        });
+    }
 }
