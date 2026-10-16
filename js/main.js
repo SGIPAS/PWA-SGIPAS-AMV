@@ -283,6 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         logoutBtn.className = 'w-full flex items-center justify-start p-3 rounded-md bg-red-700 hover:bg-red-600 text-white font-medium transition-colors shadow-sm border border-red-600 mt-4';
         logoutBtn.innerHTML = '<span class="mr-3">🚪</span> Cerrar Sesión';
         logoutBtn.addEventListener('click', async () => {
+            detenerBanner();
             invalidarCacheRol();
             await cerrarSesion();
         });
