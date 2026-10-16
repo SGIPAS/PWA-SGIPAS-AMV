@@ -1,7 +1,7 @@
 // ocp Service Worker SGIPAS — network-first con bypass de caché HTTP
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_VERSION = 'sgipas-v4';
+const CACHE_VERSION = 'sgipas-v5';
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_CDN = `${CACHE_VERSION}-cdn`;
 
