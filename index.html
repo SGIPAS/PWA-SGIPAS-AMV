@@ -22,7 +22,6 @@
                     appId: "b624c272-9ab6-44fe-af9d-1e5ff7128fca",
                     notifyButton: { enable: false },
                     allowLocalhostAsSecureOrigin: false,
-                    // ocp Usar nuestro sw.js en lugar del SW por defecto de OneSignal
                     serviceWorkerParam: { scope: "/" },
                     serviceWorkerPath: "/sw.js"
                 });
@@ -47,7 +46,6 @@
             border-right-width: 0 !important;
         }
 
-        /* ocp Indicador de offline */
         #indicador-offline {
             display: none;
             position: fixed;
@@ -130,7 +128,6 @@
         <div id="app-content" class="flex-1 overflow-y-auto p-8 pt-16 md:pt-8"></div>
     </main>
 
-    <!-- ocp Indicador visual de modo offline -->
     <div id="indicador-offline">
         <span>⚡</span>
         <span>Modo sin conexión — trabajando desde caché</span>
@@ -138,31 +135,32 @@
 
     <script type="module" src="js/main.js"></script>
 
-    <!-- ocp Registro del Service Worker -->
     <script>
-    if ('serviceWorker' in navigator) {
-        // Auto-recarga cuando hay una nueva versión del SW
-        let recargando = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (recargando) return;
-            recargando = true;
-            console.log('🔄 Nueva versión detectada, recargando...');
-            window.location.reload();
-        });
+        if ('serviceWorker' in navigator) {
+            // Auto-recarga al detectar nueva versión (con debounce para evitar loops)
+            let recargando = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (recargando) return;
+                recargando = true;
+                console.log('🔄 Nueva versión del SW detectada, recargando...');
+                window.location.reload();
+            });
 
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(reg => {
-                    console.log('✅ SW registrado:', reg.scope);
-                    setInterval(() => reg.update(), 5 * 60 * 1000);
-                })
-                .catch(err => console.error('❌ SW falló:', err));
-        });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('✅ SW registrado:', reg.scope);
+                        // Verificar actualizaciones cada 5 min
+                        setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+                    })
+                    .catch(err => console.error('❌ SW falló:', err));
+            });
 
-        window.addEventListener('online', () => document.body.classList.remove('offline'));
-        window.addEventListener('offline', () => document.body.classList.add('offline'));
-        if (!navigator.onLine) document.body.classList.add('offline');
-    }
+            // Detección de conectividad
+            window.addEventListener('online', () => document.body.classList.remove('offline'));
+            window.addEventListener('offline', () => document.body.classList.add('offline'));
+            if (!navigator.onLine) document.body.classList.add('offline');
+        }
     </script>
 </body>
 </html>
