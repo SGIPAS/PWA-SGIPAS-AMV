@@ -1,11 +1,10 @@
-// ocp Service Worker SGIPAS — network-first con bypass de caché HTTP
+// ocp Service Worker SGIPAS — network-first con filtrado de esquema y manejo de errores
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_VERSION = 'sgipas-v5';
+const CACHE_VERSION = 'sgipas-v6';
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_CDN = `${CACHE_VERSION}-cdn`;
 
-// Assets que no cambian (cache-first)
 const ASSETS_INMUTABLES = [
     '/manifest.json',
     '/logo.png',
@@ -23,6 +22,20 @@ const ARCHIVOS_CDN = [
     'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
 ];
 
+// CDNs que sabemos que no envían CORS → van directo a no-cors
+const CDN_SIN_CORS = ['https://cdn.tailwindcss.com'];
+
+// ocp Utilidad: intentar cachear sin romper si falla
+async function intentarCachear(cache, request, response) {
+    try {
+        await cache.put(request, response);
+        return true;
+    } catch (e) {
+        console.warn('[sw] No cacheado:', request.url, '-', e.message);
+        return false;
+    }
+}
+
 self.addEventListener('install', (event) => {
     console.log('[sw] Instalando versión', CACHE_VERSION);
     event.waitUntil((async () => {
@@ -31,26 +44,39 @@ self.addEventListener('install', (event) => {
 
         await Promise.allSettled(
             ASSETS_INMUTABLES.map(url =>
-                cacheStatic.add(url).catch(err => console.warn('[sw] No cacheado:', url, err.message))
+                cacheStatic.add(url).catch(err =>
+                    console.warn('[sw] Asset no cacheado:', url, '-', err.message)
+                )
             )
         );
 
         await Promise.allSettled(
             ARCHIVOS_CDN.map(async (url) => {
+                // Si es un CDN conocido sin CORS, ir directo a no-cors
+                if (CDN_SIN_CORS.includes(url)) {
+                    try {
+                        const r = await fetch(url, { mode: 'no-cors' });
+                        return cacheCdn.put(url, r);
+                    } catch (e) {
+                        console.warn('[sw] CDN no cacheado (no-cors):', url);
+                        return;
+                    }
+                }
+                // Otros CDNs: intentar CORS primero, fallback a no-cors
                 try {
                     const r = await fetch(url, { mode: 'cors' });
                     if (r && r.status === 200) return cacheCdn.put(url, r);
-                } catch (e) { /* intentar no-cors */ }
+                } catch (e) { /* fallback */ }
                 try {
                     const r = await fetch(url, { mode: 'no-cors' });
                     return cacheCdn.put(url, r);
                 } catch (e) {
-                    console.warn('[sw] No se pudo cachear CDN:', url);
+                    console.warn('[sw] CDN no cacheado:', url);
                 }
             })
         );
 
-        console.log('[sw] Precacheo de assets completo');
+        console.log('[sw] Precacheo completo');
         self.skipWaiting();
     })());
 });
@@ -75,8 +101,16 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
+    // === FILTRO CRÍTICO: solo procesar http/https ===
+    // Extensiones del navegador (chrome-extension://, moz-extension://, etc.)
+    // no son cacheables. Sin este filtro, cache.put() lanza TypeError.
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return;
+    }
+
     if (request.method !== 'GET') return;
 
+    // Ignorar llamadas a Supabase (van directo a red)
     if (url.hostname.includes('supabase.co') ||
         url.pathname.startsWith('/rest/') ||
         url.pathname.startsWith('/auth/') ||
@@ -92,7 +126,6 @@ self.addEventListener('fetch', (event) => {
             event.respondWith(cacheFirst(request, CACHE_STATIC));
             return;
         }
-        // JS, HTML, CSS: network-first con BYPASS de caché HTTP
         event.respondWith(networkFirstForzado(request, CACHE_STATIC));
         return;
     }
@@ -105,13 +138,14 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirstForzado(request, CACHE_CDN));
 });
 
-// ocp Network-first con bypass de caché HTTP (cache: 'no-cache' fuerza revalidación)
+// ocp Network-first con bypass de caché HTTP
 async function networkFirstForzado(request, cacheName) {
     const cache = await caches.open(cacheName);
     try {
         const response = await fetch(request, { cache: 'no-cache' });
-        if (response && response.status === 200) {
-            cache.put(request, response.clone());
+        if (response && response.status === 200 && response.type !== 'opaque') {
+            // Solo cachear respuestas no-opacas (permite leerlas y clonarlas)
+            await intentarCachear(cache, request, response.clone());
         }
         return response;
     } catch (err) {
@@ -137,8 +171,8 @@ async function cacheFirst(request, cacheName) {
 
     try {
         const response = await fetch(request);
-        if (response && response.status === 200) {
-            cache.put(request, response.clone());
+        if (response && response.status === 200 && response.type !== 'opaque') {
+            await intentarCachear(cache, request, response.clone());
         }
         return response;
     } catch (err) {
