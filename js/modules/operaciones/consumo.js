@@ -1,7 +1,8 @@
-// ocp Registro de consumo de agua con exportación a Excel
+// ocp Registro de consumo de agua con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
-import { exportarAExcel } from '../reportes/utils.js';  // función compartida
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
+import { exportarAExcel } from '../reportes/utils.js';
 
 export async function renderizarConsumo(contenedor, rol) {
     contenedor.innerHTML = `
@@ -14,7 +15,7 @@ export async function renderizarConsumo(contenedor, rol) {
                         <select id="consumo-tipo" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white">
                             <option value="general">General</option>
                             <option value="planta acido">Planta de Ácido</option>
-                            <option value="caldera acido">Caldera de Ácido (TQ-1205)</option>
+                            <option value="caldera acido">Caldera de Ácido</option>
                             <option value="caldera de sulfato">Caldera de Sulfato</option>
                             <option value="planta sulfato">Planta de Sulfato</option>
                         </select>
@@ -52,27 +53,51 @@ export async function renderizarConsumo(contenedor, rol) {
         if (error) return alert('Error: ' + error.message);
         alert('Registro guardado.');
         document.getElementById('form-consumo').reset();
-        cargarListaConsumo();
+        cargarListaConsumo(rol);
     });
 
-    await cargarListaConsumo();
+    await cargarListaConsumo(rol);
 }
 
-async function cargarListaConsumo() {
+async function cargarListaConsumo(rol) {
     const container = document.getElementById('lista-consumo');
-    const { data, error } = await supabase.from('consumo_agua').select('*').order('fecha_registro', { ascending: false }).limit(200);
+    const { data, error } = await supabase
+        .from('consumo_agua')
+        .select('*')
+        .eq('anulado', false)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
     if (error) { container.innerHTML = '<p class="text-red-500">Error.</p>'; return; }
     if (!data.length) { container.innerHTML = '<p class="text-slate-400">Sin registros.</p>'; return; }
 
-    container.innerHTML = data.map(r => `
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
+    container.innerHTML = data.slice(0, 20).map(r => `
         <div class="bg-slate-800 p-2 rounded text-sm">
-            <span class="text-slate-400">${r.fecha_registro}</span>
-            <span class="ml-2 font-bold text-white">${r.tipo}</span>
-            <span class="ml-2 text-blue-400">${r.valor_m3} m³</span>
+            <div class="flex justify-between items-start">
+                <span class="text-slate-400 text-xs">${escapeHtml(formatearFechaHora(r.created_at))}</span>
+                <span class="text-slate-300 text-xs">👤 ${escapeHtml(nombres[r.registrado_por] || 'N/A')}</span>
+            </div>
+            <div class="mt-1 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-white">${escapeHtml(r.tipo)}</span>
+                    <span class="ml-2 text-blue-400">${r.valor_m3} m³</span>
+                </div>
+                ${esAdmin ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${r.id}">🗑️ Anular</button>` : ''}
+            </div>
         </div>
     `).join('');
 
-    // Mostrar botón exportar
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('consumo_agua', btn.dataset.id, () => cargarListaConsumo(rol));
+            });
+        });
+    }
+
     const btn = document.getElementById('btn-exportar-consumo');
     if (btn) {
         btn.classList.remove('hidden');
