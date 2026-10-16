@@ -140,24 +140,29 @@
 
     <!-- ocp Registro del Service Worker -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then(reg => {
-                        console.log('✅ SW registrado:', reg.scope);
-                        // Verificar actualizaciones cada 5 min
-                        setInterval(() => reg.update(), 5 * 60 * 1000);
-                    })
-                    .catch(err => console.error('❌ SW falló:', err));
-            });
+    if ('serviceWorker' in navigator) {
+        // Auto-recarga cuando hay una nueva versión del SW
+        let recargando = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (recargando) return;
+            recargando = true;
+            console.log('🔄 Nueva versión detectada, recargando...');
+            window.location.reload();
+        });
 
-            // Detectar online/offline
-            window.addEventListener('online', () => document.body.classList.remove('offline'));
-            window.addEventListener('offline', () => document.body.classList.add('offline'));
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(reg => {
+                    console.log('✅ SW registrado:', reg.scope);
+                    setInterval(() => reg.update(), 5 * 60 * 1000);
+                })
+                .catch(err => console.error('❌ SW falló:', err));
+        });
 
-            // Estado inicial
-            if (!navigator.onLine) document.body.classList.add('offline');
-        }
+        window.addEventListener('online', () => document.body.classList.remove('offline'));
+        window.addEventListener('offline', () => document.body.classList.add('offline'));
+        if (!navigator.onLine) document.body.classList.add('offline');
+    }
     </script>
 </body>
 </html>
