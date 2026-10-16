@@ -274,6 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     construirSidebar(rol);
+    await inicializarBanner(rol);
     await mostrarInfoUsuario();
 
     if (footerEl) {
