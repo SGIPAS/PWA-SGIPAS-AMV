@@ -1,6 +1,7 @@
-// ocp Módulo de Paradas de Planta
+// ocp Módulo de Paradas de Planta con trazabilidad y anulación
 import { supabase } from '../../supabase-client.js';
 import { escapeHtml } from '../../utils-storage.js';
+import { mapearNombresUsuarios, formatearFechaHora, abrirModalAnulacion } from './utils.js';
 
 export async function cargarParadas(contenedor, rol) {
     if (!['admin', 'supervisor'].includes(rol)) {
@@ -103,19 +104,20 @@ export async function cargarParadas(contenedor, rol) {
         alert('Parada registrada correctamente.');
         document.getElementById('modal-parada').classList.add('hidden');
         document.getElementById('form-parada').reset();
-        cargarListaParadas();
+        cargarListaParadas(rol);
     });
 
-    await cargarListaParadas();
+    await cargarListaParadas(rol);
 }
 
-async function cargarListaParadas() {
+async function cargarListaParadas(rol) {
     const container = document.getElementById('tabla-paradas-container');
     if (!container) return;
 
     const { data, error } = await supabase
         .from('paradas_planta')
         .select('*')
+        .eq('anulado', false)
         .order('fecha_inicio', { ascending: false })
         .limit(20);
 
@@ -128,33 +130,50 @@ async function cargarListaParadas() {
         return;
     }
 
+    const nombres = await mapearNombresUsuarios(data, 'registrado_por');
+    const esAdmin = rol === 'admin';
+
     let html = `
         <table class="w-full text-left border-collapse text-sm">
             <thead class="bg-slate-900 text-slate-400 uppercase">
                 <tr>
+                    <th class="p-3">Registro</th>
                     <th class="p-3">Inicio</th>
                     <th class="p-3">Fin</th>
                     <th class="p-3">Duración (h)</th>
                     <th class="p-3">Motivo</th>
+                    <th class="p-3">Usuario</th>
+                    ${esAdmin ? '<th class="p-3 text-right">Acción</th>' : ''}
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-700 text-slate-300">
     `;
 
     data.forEach(p => {
-        const inicio = new Date(p.fecha_inicio).toLocaleString();
-        const fin = new Date(p.fecha_fin).toLocaleString();
+        const inicio = new Date(p.fecha_inicio).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' });
+        const fin = new Date(p.fecha_fin).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' });
         const duracion = ((new Date(p.fecha_fin) - new Date(p.fecha_inicio)) / 3600000).toFixed(1);
         html += `
             <tr class="hover:bg-slate-700/50">
+                <td class="p-3 text-slate-400 text-xs">${escapeHtml(formatearFechaHora(p.created_at))}</td>
                 <td class="p-3">${escapeHtml(inicio)}</td>
                 <td class="p-3">${escapeHtml(fin)}</td>
                 <td class="p-3">${duracion} h</td>
                 <td class="p-3">${escapeHtml(p.motivo)}</td>
+                <td class="p-3 text-xs">👤 ${escapeHtml(nombres[p.registrado_por] || 'N/A')}</td>
+                ${esAdmin ? `<td class="p-3 text-right"><button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${p.id}">🗑️ Anular</button></td>` : ''}
             </tr>
         `;
     });
 
     html += `</tbody></table>`;
     container.innerHTML = html;
+
+    if (esAdmin) {
+        container.querySelectorAll('.btn-anular').forEach(btn => {
+            btn.addEventListener('click', () => {
+                abrirModalAnulacion('paradas_planta', btn.dataset.id, () => cargarListaParadas(rol));
+            });
+        });
+    }
 }
