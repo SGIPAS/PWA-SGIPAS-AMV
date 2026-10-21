@@ -1,4 +1,4 @@
-// ocp Submódulo de Reporte de Novedades – con push y anulación de registros
+// ocp Submódulo de Reporte de Novedades con push y anulación
 import { supabase } from '../../supabase-client.js';
 import { getSignedUrl, escapeHtml } from '../../utils-storage.js';
 import { enviarPushARoles } from '../../push.js';
@@ -117,14 +117,14 @@ export async function renderizarNovedades(contenedor, rol) {
                 alert('Novedad guardada, pero error al crear OT: ' + otError.message);
             } else {
                 alert(`Novedad registrada y OT ${numero_ot} creada.`);
-                await enviarPushARoles(
+                enviarPushARoles(
                     ['admin', 'supervisor', 'inspector_ssl', 'ejecutor'],
                     `🔧 Nueva OT ${numero_ot} creada: ${tag}`
                 );
             }
         } else {
             alert('Novedad registrada.');
-            await enviarPushARoles(
+            enviarPushARoles(
                 ['admin', 'supervisor'],
                 `📸 Nueva novedad reportada en ${tag}`
             );
@@ -155,7 +155,6 @@ async function cargarListaNovedades(rol) {
         return;
     }
 
-    // ocp Generar URLs firmadas en paralelo
     const urlsMap = {};
     await Promise.all(data.map(async (n) => {
         if (n.foto_url) urlsMap[n.id] = await getSignedUrl(n.foto_url);
@@ -165,10 +164,15 @@ async function cargarListaNovedades(rol) {
         <div class="border-l-4 border-blue-500 bg-slate-800 p-3 rounded-r">
             <div class="flex justify-between text-xs text-slate-400 mb-1">
                 <span class="font-semibold text-white">${escapeHtml(n.tag_equipo_area)}</span>
-                <span>${new Date(n.fecha_novedad).toLocaleString()}</span>
+                <span>${new Date(n.fecha_novedad).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' })}</span>
             </div>
             <p class="text-sm text-slate-300">${escapeHtml(n.descripcion)}</p>
-            ${n.foto_url && urlsMap[n.id] ? `<img src="${urlsMap[n.id]}" class="mt-2 max-h-24 rounded">` : ''}
+            ${n.foto_url && urlsMap[n.id] ? `
+                <img src="${urlsMap[n.id]}"
+                     class="mt-2 max-h-32 rounded cursor-pointer hover:opacity-80 transition border border-slate-600"
+                     onclick="window.open('${urlsMap[n.id]}', '_blank')"
+                     title="Clic para ampliar">
+            ` : ''}
             ${rol === 'admin' ? `
             <div class="mt-2 text-right">
                 <button class="btn-anular bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded transition" data-id="${n.id}">Anular</button>
