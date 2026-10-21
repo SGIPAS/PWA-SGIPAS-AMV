@@ -1,4 +1,5 @@
 // ocp Módulo de Inventario y Producción – orquestador con subpestañas
+import { obtenerRolVerificado } from '../../supabase-client.js';
 import { renderizarMovimientos } from './movimientos.js';
 import { renderizarFundicion } from './fundicion.js';
 import { renderizarProduccion } from './produccion.js';
@@ -6,6 +7,8 @@ import { renderizarProduccion } from './produccion.js';
 export async function cargarInventario() {
     const contenedor = document.getElementById('app-content');
     if (!contenedor) return;
+
+    const rol = await obtenerRolVerificado();
 
     contenedor.innerHTML = `
         <div class="mb-6">
@@ -37,11 +40,12 @@ export async function cargarInventario() {
             activa.classList.remove('border-transparent', 'text-slate-400');
             activa.classList.add('border-blue-500', 'text-blue-500');
         }
+
         try {
             switch (name) {
-                case 'movimientos': await renderizarMovimientos(tabContent); break;
-                case 'fundicion':   await renderizarFundicion(tabContent);   break;
-                case 'produccion':  await renderizarProduccion(tabContent);   break;
+                case 'movimientos': await renderizarMovimientos(tabContent, rol); break;
+                case 'fundicion':   await renderizarFundicion(tabContent, rol);   break;
+                case 'produccion':  await renderizarProduccion(tabContent, rol);  break;
             }
         } catch (err) {
             tabContent.innerHTML = `<p class="text-red-500">Error al cargar: ${err.message}</p>`;
