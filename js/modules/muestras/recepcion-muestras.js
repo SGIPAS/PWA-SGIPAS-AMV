@@ -38,7 +38,9 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
     escaner = new EscanerQR('contenedor-escaner-rec');
 
     // Función para buscar y mostrar la muestra
-    async function buscarMuestra(qr) {
+    async function buscarMuestra(qrTexto) {
+        const qr = qrTexto.trim().toUpperCase();
+        
         document.getElementById('recepcion-qr').value = qr;
         document.getElementById('contenedor-escaner-rec').classList.add('hidden');
         
