@@ -64,6 +64,7 @@ export async function cargarModuloOperaciones() {
             case 'motores':        await renderizarMotores(tabContent, currentUserRole); break;
             case 'diferenciales':  await renderizarDiferenciales(tabContent, currentUserRole); break;
             case 'paradas':        await cargarParadas(tabContent, currentUserRole); break;   // ocp usar cargarParadas
+            case 'muestras': await import('../muestras/toma-muestras.js').then(m => m.renderizarTomaMuestras(tabContent)); break;
         }
     }
 
