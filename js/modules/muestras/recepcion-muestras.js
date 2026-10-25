@@ -9,6 +9,7 @@ let escaner = null;
 export async function renderizarRecepcionMuestras(contenedor, rol) {
     contenedor.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- COLUMNA IZQUIERDA: ESCANER -->
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
                 <h2 class="text-xl font-bold text-white mb-4">Recepción de Muestra</h2>
                 <p class="text-slate-400 text-sm mb-4">Escanee el código QR para verificar los datos.</p>
@@ -23,13 +24,27 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
                 
                 <div id="contenedor-escaner-rec" class="hidden w-full max-w-sm mx-auto overflow-hidden rounded-lg border-2 border-blue-500 mb-4"></div>
                 
-                <div id="detalle-muestra" class="hidden bg-slate-800 p-4 rounded border border-slate-600 mt-4"></div>
+                <div id="detalle-muestra" class="hidden bg-slate-800 p-4 rounded border border-slate-600 mt-4">
+                    <!-- Detalle de la muestra escaneada -->
+                </div>
             </div>
 
-            <div class="bg-slate-900 p-4 rounded border border-slate-700">
-                <h2 class="text-xl font-bold text-white mb-4">Cola de Recepción (Pendientes)</h2>
-                <div id="lista-muestras-pendientes" class="space-y-2 max-h-[500px] overflow-y-auto">
-                    <p class="text-slate-400 animate-pulse">Cargando...</p>
+            <!-- COLUMNA DERECHA: PENDIENTES E HISTORIAL -->
+            <div class="bg-slate-900 p-4 rounded border border-slate-700 flex flex-col gap-6">
+                <!-- SECCIÓN 1: COLA DE PENDIENTES -->
+                <div>
+                    <h2 class="text-lg font-bold text-white mb-3">Cola de Recepción (Pendientes)</h2>
+                    <div id="lista-muestras-pendientes" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <p class="text-slate-400 animate-pulse">Cargando...</p>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: HISTORIAL PROCESADO -->
+                <div>
+                    <h2 class="text-lg font-bold text-white mb-3">Historial (Recibidas / Rechazadas)</h2>
+                    <div id="lista-muestras-historial" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <p class="text-slate-400 animate-pulse">Cargando...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -51,7 +66,6 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
         detalleDiv.innerHTML = '<p class="text-blue-400 animate-pulse">Buscando...</p>';
         detalleDiv.classList.remove('hidden');
 
-        // CORRECCIÓN: Quitamos el JOIN defectuoso
         const { data, error } = await supabase
             .from('muestras')
             .select('*')
@@ -64,7 +78,6 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
             return;
         }
 
-        // Traemos el nombre del operador
         const nombres = await mapearNombresUsuarios([data], 'operador_id');
 
         detalleDiv.innerHTML = `
@@ -87,6 +100,7 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
                 detalleDiv.classList.add('hidden');
                 document.getElementById('recepcion-qr').value = '';
                 cargarPendientes();
+                cargarHistorial();
             } catch (err) { alert(err.message); }
         });
 
@@ -99,14 +113,15 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
                 detalleDiv.classList.add('hidden');
                 document.getElementById('recepcion-qr').value = '';
                 cargarPendientes();
+                cargarHistorial();
             } catch (err) { alert(err.message); }
         });
     }
 
+    // CARGAR PENDIENTES
     async function cargarPendientes() {
         const container = document.getElementById('lista-muestras-pendientes');
         
-        // CORRECCIÓN: Quitamos el JOIN defectuoso
         const { data, error } = await supabase
             .from('muestras')
             .select('*')
@@ -139,10 +154,64 @@ export async function renderizarRecepcionMuestras(contenedor, rol) {
                 try {
                     await supabase.rpc('recibir_muestra', { p_codigo_qr: btn.dataset.qr });
                     cargarPendientes();
+                    cargarHistorial();
                 } catch (err) { alert(err.message); }
             });
         });
     }
 
+    // CARGAR HISTORIAL (RECIBIDAS Y RECHAZADAS)
+    async function cargarHistorial() {
+        const container = document.getElementById('lista-muestras-historial');
+        
+        // Traemos las que ya fueron procesadas (recibidas o rechazadas), las más recientes primero
+        const { data, error } = await supabase
+            .from('muestras')
+            .select('*')
+            .in('estado', ['recibida', 'rechazada'])
+            .order('fecha_recepcion', { ascending: false })
+            .limit(20);
+
+        if (error || !data.length) {
+            container.innerHTML = '<p class="text-slate-400">No hay historial reciente.</p>';
+            return;
+        }
+
+        const nombresOperadores = await mapearNombresUsuarios(data, 'operador_id');
+        const nombresAnalistas = await mapearNombresUsuarios(data, 'analista_id');
+
+        container.innerHTML = data.map(m => {
+            const esRecibida = m.estado === 'recibida';
+            const colorBorde = esRecibida ? 'border-green-500' : 'border-red-500';
+            const badge = esRecibida 
+                ? '<span class="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">✅ Recibida</span>' 
+                : '<span class="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">❌ Rechazada</span>';
+            
+            // Si fue rechazada, mostramos el motivo
+            const motivoHTML = m.motivo_rechazo 
+                ? `<p class="text-xs text-red-400 mt-1">Motivo: ${escapeHtml(m.motivo_rechazo)}</p>` 
+                : '';
+
+            return `
+                <div class="bg-slate-800 p-3 rounded border-l-4 ${colorBorde}">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-white text-sm">${escapeHtml(m.alias)}</p>
+                            <p class="text-xs text-slate-400 font-mono mt-0.5">${escapeHtml(m.codigo_qr)} • ${escapeHtml(m.punto_muestreo)}</p>
+                        </div>
+                        ${badge}
+                    </div>
+                    <div class="text-xs text-slate-500 mt-2">
+                        <p>Muestreo: ${formatearFechaHora(m.fecha_muestreo)} (por 👤 ${escapeHtml(nombresOperadores[m.operador_id] || 'N/A')})</p>
+                        <p>Recepción: ${formatearFechaHora(m.fecha_recepcion)} (por 👤 ${escapeHtml(nombresAnalistas[m.analista_id] || 'N/A')})</p>
+                        ${motivoHTML}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Inicializar ambas listas
     await cargarPendientes();
+    await cargarHistorial();
 }
