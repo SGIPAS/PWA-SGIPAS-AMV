@@ -18,9 +18,7 @@ export async function renderizarTomaMuestras(contenedor, rol) {
                         <div class="flex gap-2">
                             <input type="text" id="muestra-qr" required readonly placeholder="Use la cámara..."
                                 class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-white font-mono text-lg">
-                            <button type="button" id="btn-escanear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold">
-                                📷
-                            </button>
+                            <button type="button" id="btn-escanear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold">📷</button>
                         </div>
                     </div>
                     
@@ -70,7 +68,7 @@ export async function renderizarTomaMuestras(contenedor, rol) {
             <!-- COLUMNA DERECHA: HISTORIAL -->
             <div class="bg-slate-900 p-4 rounded border border-slate-700">
                 <h2 class="text-xl font-bold text-white mb-4">Historial Reciente</h2>
-                <div id="lista-muestras-operador" class="space-y-2 max-h-[600px] overflow-y-auto">
+                <div id="lista-muestras-operador" class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                     <p class="text-slate-400 animate-pulse">Cargando...</p>
                 </div>
             </div>
@@ -117,6 +115,7 @@ export async function renderizarTomaMuestras(contenedor, rol) {
 
     async function cargarHistorial(rolActual) {
         const container = document.getElementById('lista-muestras-operador');
+        
         const { data, error } = await supabase
             .from('muestras')
             .select('*')
@@ -128,6 +127,9 @@ export async function renderizarTomaMuestras(contenedor, rol) {
             return;
         }
 
+        // Mapeamos tanto operadores como analistas para tener los nombres completos
+        const nombresOperadores = await mapearNombresUsuarios(data, 'operador_id');
+        const nombresAnalistas = await mapearNombresUsuarios(data, 'analista_id');
         const esAdmin = rolActual === 'admin';
 
         container.innerHTML = data.map(m => {
@@ -135,6 +137,15 @@ export async function renderizarTomaMuestras(contenedor, rol) {
             if (m.estado === 'en_transito') badge = '<span class="text-xs bg-yellow-900 text-yellow-300 px-2 py-0.5 rounded">⏳ En Tránsito</span>';
             else if (m.estado === 'recibida') badge = '<span class="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded">✅ Recibida</span>';
             else if (m.estado === 'rechazada') badge = '<span class="text-xs bg-red-900 text-red-300 px-2 py-0.5 rounded">❌ Rechazada</span>';
+
+            // Lógica para mostrar info de recepción solo si ya fue procesada
+            const infoRecepcion = (m.estado === 'recibida' || m.estado === 'rechazada') 
+                ? `<p>Recepción: ${formatearFechaHora(m.fecha_recepcion)} (por 👤 ${escapeHtml(nombresAnalistas[m.analista_id] || 'N/A')})</p>` 
+                : '';
+
+            const motivoHTML = m.motivo_rechazo 
+                ? `<p class="text-xs text-red-400 mt-1">Motivo: ${escapeHtml(m.motivo_rechazo)}</p>` 
+                : '';
 
             return `
                 <div class="bg-slate-800 p-3 rounded border-l-4 border-slate-600">
@@ -145,25 +156,36 @@ export async function renderizarTomaMuestras(contenedor, rol) {
                         </div>
                         ${badge}
                     </div>
-                    <div class="flex justify-between items-center mt-2">
-                        <p class="text-xs text-slate-500">${formatearFechaHora(m.fecha_muestreo)}</p>
-                        ${esAdmin && m.estado === 'en_transito' ? `<button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${m.id}">🗑️ Anular</button>` : ''}
+                    <div class="text-xs text-slate-500 mt-2">
+                        <p>Muestreo: ${formatearFechaHora(m.fecha_muestreo)} (por 👤 ${escapeHtml(nombresOperadores[m.operador_id] || 'N/A')})</p>
+                        ${infoRecepcion}
+                        ${motivoHTML}
                     </div>
+                    <!-- Botón de anular SOLO visible si el admin lo revisa y sigue en tránsito -->
+                    ${esAdmin && m.estado === 'en_transito' ? `
+                        <div class="mt-2 text-right">
+                            <button class="btn-anular text-red-400 hover:text-red-300 text-xs" data-id="${m.id}">🗑️ Anular</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
 
-        // Lógica de anulación simple
+        // Lógica de anulación
         if (esAdmin) {
             container.querySelectorAll('.btn-anular').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const id = btn.dataset.id;
                     const motivo = prompt('Motivo de anulación (se liberará el frasco):');
                     if (!motivo) return;
-                    // Llamamos a la función de rechazar, pero desde admin
-                    // Ojo: para que funcione, debemos actualizar el estado a 'rechazada' o 'anulado'
-                    await supabase.from('muestras').update({ estado: 'rechazada', motivo_rechazo: 'Anulada por admin: ' + motivo }).eq('id', id);
-                    cargarHistorial(rolActual);
+                    
+                    const { error } = await supabase.from('muestras').update({ 
+                        estado: 'rechazada', 
+                        motivo_rechazo: 'Anulada por admin: ' + motivo 
+                    }).eq('id', id);
+                    
+                    if (error) alert('Error al anular: ' + error.message);
+                    else cargarHistorial(rolActual);
                 });
             });
         }
