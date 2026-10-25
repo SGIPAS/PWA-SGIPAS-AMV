@@ -25,6 +25,7 @@ export async function cargarLaboratorio() {
         </div>
         <div class="border-b border-slate-700 mb-6 bg-slate-900 rounded-t-lg px-2 pt-2">
             <nav class="-mb-px flex space-x-4 overflow-x-auto" id="tab-nav">
+                <button data-tab="recepcion" class="tab-btn ...">📥 Recepción Muestras</button>
                 <button data-tab="cert-acido" class="tab-btn border-blue-500 text-blue-500 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🧪 Cert. Ácido</button>
                 <button data-tab="cert-azufre" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">🧴 Cert. Azufre</button>
                 <button data-tab="cert-agua" class="tab-btn border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors">💧 Cert. Agua</button>
