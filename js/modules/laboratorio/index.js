@@ -53,7 +53,7 @@ export async function cargarLaboratorio() {
             case 'cert-azufre': await renderizarCertAzufre(tabContent, currentUserRole); break;
             case 'cert-agua':   await renderizarCertAgua(tabContent, currentUserRole);   break;
             case 'disp-acido':  await renderizarDispAcido(tabContent, currentUserRole);  break;
-            case 'recepcion': await import('../muestras/recepcion-muestras.js').then(m => m.renderizarRecepcionMuestras(tabContent, rol)); break;
+            case 'recepcion': await import('../muestras/recepcion-muestras.js').then(m => m.renderizarRecepcionMuestras(tabContent, currentUserRole)); break;
         }
     }
 
